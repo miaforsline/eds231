@@ -174,57 +174,68 @@ tokenized <- tokenized %>%
 
 # Visualize the most common words (excluding stop words)
 ```{r}
-tokenized %>%
-  count(word, sort = TRUE) %>%
-  filter(n > 5) %>%
-  mutate(word = reorder(word, n)) %>%
-  ggplot(aes(n, word)) +
-  geom_col() +
-  labs(y = NULL)
+# tokenized %>%
+#   count(word, sort = TRUE) %>%
+#   filter(n > 5) %>%
+#   mutate(word = reorder(word, n)) %>%
+#   ggplot(aes(n, word)) +
+#   geom_col() +
+#   labs(y = NULL)
 ```
 
-This visual is still too cluttered and can be further cleaned 
 
-```{r cleaning, eval=FALSE}
+```{r inspect, eval=FALSE}
 #inspect the list of tokens (words)
 tokenized$word
 count(tokenized)
 ```
 
-Stem tribe words
+## Stem tribe words
+
+- remove plurals and other varying forms of a core word 
 ```{r cleaning, eval=FALSE}
-clean_tokens <- str_replace_all(tokenized$word,"land[a-z,A-Z]*","land") #stem tribe words
-length(clean_tokens)
+clean_tokens <- str_replace_all(tokenized$word,"fringe[a-z,A-Z]*","fringe")
+
+#check to see if the transformation worked 
+# %>% 
+#   as.data.frame()
+# clean_tokens$.
 ```
 
-Remove numbers 
+## Remove numbers 
 ```{r cleaning, eval=FALSE}
-clean_tokens <- str_remove_all(clean_tokens, "[:digit:]") #remove all numbers
-length(clean_tokens)
+clean_tokens <- str_remove_all(clean_tokens, "[:digit:]") 
+
+#check to see if the transformation worked 
+# %>% 
+#   as.data.frame()
+# clean_tokens$.
 ```
 
-Remove plural words 
+## Remove plural words 
 ```{r cleaning, eval=FALSE}
-clean_tokens <- gsub("’s", '', clean_tokens)
-length(clean_tokens)
+clean_tokens <- gsub("’s", '', clean_tokens) %>% 
+  as.data.frame()
+clean_tokens$.
 ```
 
-# Visualize 
-However, it is still pretty illegible 
+Put clean tokens into the `tokenized` dataframe 
 ```{r cleaning, eval=FALSE}
 tokenized$clean <- clean_tokens
 
-tokenized %>%
-  count(clean, sort = TRUE) %>%
- #illegible with all the words displayed
-  mutate(clean = reorder(clean, n)) %>%
-  ggplot(aes(n, clean)) +
-  geom_col() +
-  labs(y = NULL)
+# tokenized %>%
+#   count(clean, sort = TRUE) %>%
+#  #illegible with all the words displayed
+#   mutate(clean = reorder(clean, n)) %>%
+#   ggplot(aes(n, clean)) +
+#   geom_col() +
+#   labs(y = NULL)
 ```
 
 # Visualize after cleaning
-- limit the graph to only include words that occur at least X times 
+
+- limit the graph to only include words that occur at least 20 times 
+
 ```{r cleaning, eval=FALSE}
 #remove the empty strings
 tib <-subset(tokenized, clean!="")
