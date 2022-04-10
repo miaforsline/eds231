@@ -130,7 +130,7 @@ nytDat %>%
 
 The New York Times doesn't make full text of the articles available through the API. But we can use the first paragraph of each article.
 
-- 
+- unnest the words from the first paragraph of each article 
 ```{r plot_frequencies}
 names(nytDat)
 
@@ -138,9 +138,15 @@ paragraph <- names(nytDat)[6] #The 6th column, "response.doc.lead_paragraph", is
 
 tokenized <- nytDat %>%
   unnest_tokens(word, paragraph)
+```
 
-tokenized[,34] #view the words from the first paragraph of each article 
+View the unique words pulled from the first paragraph of each article 
+```{r plot_frequencies}
+tokenized[,34] 
+```
 
+# Visualize the most common words in the first paragraph of each article 
+```{r plot_frequencies}
 tokenized %>%
   count(word, sort = TRUE) %>%
   filter(n > 10) %>% #illegible with all the words displayed
@@ -150,13 +156,20 @@ tokenized %>%
   labs(y = NULL)
 ```
 
-Uh oh, who knows what we need to do here?
+Since this visual is not very helpful, we can incoroporate stop words to help filter out less meaningful words from our visual 
 
 ```{r}
+#call common stop words from a lexicon 
 data(stop_words)
 stop_words
+
+#use an anti-join to remove the stop words from our tokenized object 
 tokenized <- tokenized %>%
   anti_join(stop_words)
+```
+
+# Visualize the most common words (excluding stop words)
+```{r}
 tokenized %>%
   count(word, sort = TRUE) %>%
   filter(n > 5) %>%
@@ -166,15 +179,37 @@ tokenized %>%
   labs(y = NULL)
 ```
 
-OK, but look at the most common words. Does one stick out?
+This visual is still too cluttered and can be further cleaned 
 
 ```{r cleaning, eval=FALSE}
 #inspect the list of tokens (words)
 tokenized$word
+count(tokenized)
+```
+
+Stem tribe words
+```{r cleaning, eval=FALSE}
 clean_tokens <- str_replace_all(tokenized$word,"land[a-z,A-Z]*","land") #stem tribe words
+length(clean_tokens)
+```
+
+Remove numbers 
+```{r cleaning, eval=FALSE}
 clean_tokens <- str_remove_all(clean_tokens, "[:digit:]") #remove all numbers
+length(clean_tokens)
+```
+
+Remove plural words 
+```{r cleaning, eval=FALSE}
 clean_tokens <- gsub("’s", '', clean_tokens)
+length(clean_tokens)
+```
+
+# Visualize 
+However, it is still pretty illegible 
+```{r cleaning, eval=FALSE}
 tokenized$clean <- clean_tokens
+
 tokenized %>%
   count(clean, sort = TRUE) %>%
  #illegible with all the words displayed
@@ -182,18 +217,25 @@ tokenized %>%
   ggplot(aes(n, clean)) +
   geom_col() +
   labs(y = NULL)
+```
+
+# Visualize after cleaning
+- limit the graph to only include words that occur at least X times 
+```{r cleaning, eval=FALSE}
 #remove the empty strings
 tib <-subset(tokenized, clean!="")
 #reassign
 tokenized <- tib
-#try again
+
+#visualize again
 tokenized %>%
   count(clean, sort = TRUE) %>%
-  filter(n > 10) %>% 
+  filter(n > 20) %>% 
   mutate(clean = reorder(clean, n)) %>%
   ggplot(aes(n, clean)) +
   geom_col() +
-  labs(y = NULL)
+  labs(y = "Most common words", 
+       x = "Word Occurrence Frequency")
 ```
 
 ## Assignment (Due by Week 3)
@@ -207,17 +249,6 @@ tokenized %>%
 -   Make some (at least 3) transformations to the corpus (add stopword(s), stem a key term and its variants, remove numbers)
 
 4.  Recreate the publications per day and word frequency plots using the headlines variable (response.docs.headline.main). Compare the distributions of word frequencies between the first paragraph and headlines. Do you see any difference?
-© 2022 GitHub, Inc.
-Terms
-Privacy
-Security
-Status
-Docs
-Contact GitHub
-Pricing
-API
-Training
-Blog
 
 
 #knit to pdf to submit 
