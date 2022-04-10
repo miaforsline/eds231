@@ -18,7 +18,7 @@ library(tidytext) #text data management and analysis
 library(ggplot2) #plot word frequencies and publication dates
 ```
 
-### 2. Connect to the New York Times API and send a query
+# 2. Connect to the New York Times API and send a query
 
 - Query phrase: "bark beetle" 
 
@@ -44,14 +44,13 @@ dim(x)
 names(x)
 ```
 
-# Examine a piece of text
+## Examine a piece of text
 
 - the data object has a variable called "response.docs.snippet" that contains a short excerpt, or "snippet" from the article. 
-- check the snippet to ensure that the query picked out articles containing the correct query word ("chytrid")
+- check the snippet to ensure that the query picked out articles containing the correct query word ("bark beetle")
 
 ```{r snippet, eval=FALSE}
 x$response.docs.snippet[9]
-#assign a snippet to x to use as fodder for stringr functions.  You can follow along using the sentence on the next line.
 ```
 
 # Set some parameters for a bigger query
@@ -99,7 +98,7 @@ class(nytSearch)
 nytDat <- rbind_pages(pages)
 ```
 
-# 3. Visualize the various types of materials that were retrieved 
+Visualize the various types of materials that were retrieved 
 ```{r article-type}
 #nytDat <- read.csv("nytDat.csv") # obtained from 
 #dim(nytDat)
@@ -116,7 +115,7 @@ nytDat %>%
   ylab("Material Type") + 
 xlab("% of Materials Retrieved")
 ```
-# Visuzalize when materials were published 
+# 3. Visuzalize publications per day 
 
 ```{r date-plot}
 nytDat %>%
@@ -125,7 +124,9 @@ nytDat %>%
   summarise(count=n()) %>%
   filter(count >= 2) %>%
   ggplot() +
-  geom_bar(aes(x=reorder(pubDay, count), y=count), stat="identity") + coord_flip()
+  geom_bar(aes(x=reorder(pubDay, count), y=count), stat="identity") + coord_flip() + 
+  labs(y = "Publication Day", 
+       x = "Number of Articles Published")
 ```
 
 The New York Times doesn't make full text of the articles available through the API. But we can use the first paragraph of each article.
@@ -145,7 +146,9 @@ View the unique words pulled from the first paragraph of each article
 tokenized[,34] 
 ```
 
-# Visualize the most common words in the first paragraph of each article 
+# 3. Visualize word frequency plotsusing the first paragraph of each article 
+- note that there are so many words that the graph is extremely difficult to read 
+
 ```{r plot_frequencies}
 tokenized %>%
   count(word, sort = TRUE) %>%
@@ -156,8 +159,9 @@ tokenized %>%
   labs(y = NULL)
 ```
 
-Since this visual is not very helpful, we can incoroporate stop words to help filter out less meaningful words from our visual 
+# 4. Since this visual is not very helpful, we transform the corpus in various ways to help filter out less meaningful words from our visual 
 
+## Incorporate stop words 
 ```{r}
 #call common stop words from a lexicon 
 data(stop_words)
@@ -235,7 +239,8 @@ tokenized %>%
   ggplot(aes(n, clean)) +
   geom_col() +
   labs(y = "Most common words", 
-       x = "Word Occurrence Frequency")
+       x = "Word Occurrence Frequency") + 
+  theme_classic()
 ```
 
 ## Assignment (Due by Week 3)
