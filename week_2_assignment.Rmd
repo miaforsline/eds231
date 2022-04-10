@@ -1,0 +1,223 @@
+---
+title: "Topic 2: Text Data in R Assignment"
+author: "Mia Forsline"
+date: "4/6/2022"
+output: html_document
+---
+
+# Set up: Load necessary packages 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      warnings = FALSE,
+                      messages = FALSE)
+
+library(jsonlite) #convert results from API queries into R-friendly formats 
+library(tidyverse) 
+library(tidytext) #text data management and analysis
+library(ggplot2) #plot word frequencies and publication dates
+```
+
+### 2. Connect to the New York Times API and send a query
+
+- Query phrase: "bark beetle" 
+
+```{r api, eval = FALSE}
+#create an object called x with the results of our query ("bark beetle")
+# the from JSON flatten the JSON object, then convert to a data frame
+
+key = "zwtPmtpUJiMGPfGjXz8maQyr3cx6YFdS"
+
+x <- fromJSON("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=bark+beetle&api-key=zwtPmtpUJiMGPfGjXz8maQyr3cx6YFdS", 
+              flatten = TRUE) #the string following "key=" is your API key 
+
+class(x) #note that x is a list 
+
+#convert x to a dataframe 
+x <- x %>% 
+  data.frame()
+
+#the dataframe is 10 x 33
+dim(x)
+
+#check the variable names in the dataframe 
+names(x)
+```
+
+# Examine a piece of text
+
+- the data object has a variable called "response.docs.snippet" that contains a short excerpt, or "snippet" from the article. 
+- check the snippet to ensure that the query picked out articles containing the correct query word ("chytrid")
+
+```{r snippet, eval=FALSE}
+x$response.docs.snippet[9]
+#assign a snippet to x to use as fodder for stringr functions.  You can follow along using the sentence on the next line.
+```
+
+# Set some parameters for a bigger query
+
+- searching for articles from 1990 - 2022 
+
+```{r}
+term <- "bark+beetle" # Need to use + to string together separate words
+begin_date <- "19900101" #start date: Jan 1, 1990
+end_date <- "20220101" #end date: Jan 1, 2022
+key = "zwtPmtpUJiMGPfGjXz8maQyr3cx6YFdS"
+
+#construct the query url using API operators
+baseurl <- paste0("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=",term,
+                  "&begin_date=",begin_date,
+                  "&end_date=",end_date,
+                  "&facet_filter=true&api-key=",key, sep="")
+
+#examine our query url
+baseurl
+```
+
+Obtain multiple pages of query results 
+
+- retrieved 35 pages of results 
+- retrieved 358 articles 
+
+```{r, eval=FALSE}
+initialQuery <- fromJSON(baseurl)
+
+maxPages <- round((initialQuery$response$meta$hits[1] / 10)-1) 
+
+pages <- list()
+
+for(i in 0:maxPages){
+  nytSearch <- fromJSON(paste0(baseurl, "&page=", i), flatten = TRUE) %>% data.frame() 
+  message("Retrieving page ", i)
+  pages[[i+1]] <- nytSearch 
+  Sys.sleep(6) 
+}
+
+class(nytSearch)
+#need to bind the pages and create a tibble from nytDa
+
+nytDat <- rbind_pages(pages)
+```
+
+# 3. Visualize the various types of materials that were retrieved 
+```{r article-type}
+#nytDat <- read.csv("nytDat.csv") # obtained from 
+#dim(nytDat)
+
+nytDat %>% 
+  group_by(response.docs.type_of_material) %>%
+  summarize(count=n()) %>%
+  mutate(percent = (count / sum(count))*100) %>%
+  ggplot() +
+  geom_bar(aes(y=percent, x=response.docs.type_of_material, fill=response.docs.type_of_material), 
+           stat = "identity") + 
+  coord_flip() + 
+  theme_classic() + 
+  ylab("Material Type") + 
+xlab("% of Materials Retrieved")
+```
+# Visuzalize when materials were published 
+
+```{r date-plot}
+nytDat %>%
+  mutate(pubDay=gsub("T.*","",response.docs.pub_date)) %>%
+  group_by(pubDay) %>%
+  summarise(count=n()) %>%
+  filter(count >= 2) %>%
+  ggplot() +
+  geom_bar(aes(x=reorder(pubDay, count), y=count), stat="identity") + coord_flip()
+```
+
+The New York Times doesn't make full text of the articles available through the API. But we can use the first paragraph of each article.
+
+- 
+```{r plot_frequencies}
+names(nytDat)
+
+paragraph <- names(nytDat)[6] #The 6th column, "response.doc.lead_paragraph", is the one we want here.  
+
+tokenized <- nytDat %>%
+  unnest_tokens(word, paragraph)
+
+tokenized[,34] #view the words from the first paragraph of each article 
+
+tokenized %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 10) %>% #illegible with all the words displayed
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word)) +
+  geom_col() +
+  labs(y = NULL)
+```
+
+Uh oh, who knows what we need to do here?
+
+```{r}
+data(stop_words)
+stop_words
+tokenized <- tokenized %>%
+  anti_join(stop_words)
+tokenized %>%
+  count(word, sort = TRUE) %>%
+  filter(n > 5) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word)) +
+  geom_col() +
+  labs(y = NULL)
+```
+
+OK, but look at the most common words. Does one stick out?
+
+```{r cleaning, eval=FALSE}
+#inspect the list of tokens (words)
+tokenized$word
+clean_tokens <- str_replace_all(tokenized$word,"land[a-z,A-Z]*","land") #stem tribe words
+clean_tokens <- str_remove_all(clean_tokens, "[:digit:]") #remove all numbers
+clean_tokens <- gsub("’s", '', clean_tokens)
+tokenized$clean <- clean_tokens
+tokenized %>%
+  count(clean, sort = TRUE) %>%
+ #illegible with all the words displayed
+  mutate(clean = reorder(clean, n)) %>%
+  ggplot(aes(n, clean)) +
+  geom_col() +
+  labs(y = NULL)
+#remove the empty strings
+tib <-subset(tokenized, clean!="")
+#reassign
+tokenized <- tib
+#try again
+tokenized %>%
+  count(clean, sort = TRUE) %>%
+  filter(n > 10) %>% 
+  mutate(clean = reorder(clean, n)) %>%
+  ggplot(aes(n, clean)) +
+  geom_col() +
+  labs(y = NULL)
+```
+
+## Assignment (Due by Week 3)
+
+1.  Create a free New York Times account (<https://developer.nytimes.com/get-started>)
+
+2.  Pick an interesting environmental key word(s) and use the jsonlite package to query the API. Pick something high profile enough and over a large enough time frame that your query yields enough articles for an interesting examination.
+
+3.  Recreate the publications per day and word frequency plots using the first paragraph
+
+-   Make some (at least 3) transformations to the corpus (add stopword(s), stem a key term and its variants, remove numbers)
+
+4.  Recreate the publications per day and word frequency plots using the headlines variable (response.docs.headline.main). Compare the distributions of word frequencies between the first paragraph and headlines. Do you see any difference?
+© 2022 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Docs
+Contact GitHub
+Pricing
+API
+Training
+Blog
+
+
+#knit to pdf to submit 
