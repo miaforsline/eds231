@@ -22,7 +22,7 @@ library(ggplot2) #plot word frequencies and publication dates
 
 - Query phrase: "bark beetle" 
 
-```{r api, eval = FALSE}
+```{r, eval = FALSE}
 #create an object called x with the results of our query ("bark beetle")
 # the from JSON flatten the JSON object, then convert to a data frame
 
@@ -41,11 +41,11 @@ x <- x %>%
 - the data object has a variable called "response.docs.snippet" that contains a short excerpt, or "snippet" from the article. 
 - check the snippet to ensure that the query picked out articles containing the correct query word ("bark beetle")
 
-```{r snippet, eval=FALSE}
+```{r, eval=FALSE}
 x$response.docs.snippet[9]
 ```
 
-# Set some parameters for a bigger query
+## Set some parameters for a bigger query
 
 - searching for articles from 1990 - 2022 
 
@@ -90,26 +90,9 @@ class(nytSearch)
 nytDat <- rbind_pages(pages)
 ```
 
-Visualize the various types of materials that were retrieved 
-```{r article-type}
-#nytDat <- read.csv("nytDat.csv") # obtained from 
-#dim(nytDat)
-
-nytDat %>% 
-  group_by(response.docs.type_of_material) %>%
-  summarize(count=n()) %>%
-  mutate(percent = (count / sum(count))*100) %>%
-  ggplot() +
-  geom_bar(aes(y=percent, x=response.docs.type_of_material, fill=response.docs.type_of_material), 
-           stat = "identity") + 
-  coord_flip() + 
-  theme_classic() + 
-  ylab("Material Type") + 
-xlab("% of Materials Retrieved")
-```
 # 3. Visuzalize publications per day 
 
-```{r date-plot}
+```{r}
 nytDat %>%
   mutate(pubDay=gsub("T.*","",response.docs.pub_date)) %>%
   group_by(pubDay) %>%
@@ -124,7 +107,7 @@ nytDat %>%
 The New York Times doesn't make full text of the articles available through the API. But we can use the first paragraph of each article.
 
 - unnest the words from the first paragraph of each article 
-```{r plot_frequencies}
+```{r}
 #names(nytDat)
 
 paragraph <- names(nytDat)[6] #The 6th column, "response.doc.lead_paragraph", is the one we want here.  
@@ -138,7 +121,7 @@ tokenized <- nytDat %>%
 # 3. Visualize word frequency plotsusing the first paragraph of each article 
 - note that the most common words (occurring more than 100 times) are not at all meaningful 
 
-```{r plot_frequencies}
+```{r}
 tokenized %>%
   count(word, sort = TRUE) %>%
   filter(n > 100) %>% #illegible with all the words displayed
@@ -149,10 +132,15 @@ tokenized %>%
        x = "Word Frequency")
 ```
 
-# 4. Since this visual is not very helpful, we transform the corpus in various ways to help filter out less meaningful words from our visual 
+## Since this visual is not very helpful, we transform the corpus in various ways to help filter out less meaningful words from our visual 
 
-## Incorporate stop words 
+1. incorporate stop words
+2. stem tribe words
+3. remove numbers 
+4. remove possessive words 
+
 ```{r}
+
 #call common stop words from a lexicon 
 data(stop_words)
 stop_words
@@ -160,39 +148,24 @@ stop_words
 #use an anti-join to remove the stop words from our tokenized object 
 tokenized <- tokenized %>%
   anti_join(stop_words)
-```
 
-
-```{r inspect, eval=FALSE}
 #inspect the list of tokens (words)
 #tokenized$word
-```
 
-## Stem tribe words
-
-- remove plurals and other varying forms of a core word 
-```{r cleaning, eval=FALSE}
 clean_tokens <- str_replace_all(tokenized$word,"fringe[a-z,A-Z]*","fringe")
 
 #check to see if the transformation worked 
 # %>% 
 #   as.data.frame()
 # clean_tokens$.
-```
 
-## Remove numbers 
-```{r cleaning, eval=FALSE}
 clean_tokens <- str_remove_all(clean_tokens, "[:digit:]") 
 
 #check to see if the transformation worked 
 # %>% 
 #   as.data.frame()
 # clean_tokens$.
-```
 
-## Remove possessive words 
-
-```{r cleaning, eval=FALSE}
 #clean_tokens <- gsub("’s", '', clean_tokens) 
 
 clean_tokens <- gsub("[^A-z]s", "", clean_tokens) 
@@ -200,27 +173,18 @@ clean_tokens <- gsub("[^A-z]s", "", clean_tokens)
 # %>% 
 #   as.data.frame()
 # clean_tokens$.
-```
 
-Put clean tokens into the `tokenized` dataframe 
-```{r cleaning, eval=FALSE}
+#Put clean tokens into the `tokenized` dataframe 
+
 tokenized$clean <- clean_tokens
-
-# tokenized %>%
-#   count(clean, sort = TRUE) %>%
-#  #illegible with all the words displayed
-#   mutate(clean = reorder(clean, n)) %>%
-#   ggplot(aes(n, clean)) +
-#   geom_col() +
-#   labs(y = NULL)
 ```
 
-# Visualize word frequency after transforming/cleaning
+## Visualize word frequency after transforming/cleaning
 
 - remove the empty strings 
 - limit the graph to only include words that occur over 20 times 
 
-```{r cleaning, eval=FALSE}
+```{r, eval=FALSE}
 #remove the empty strings
 tib <-subset(tokenized, clean!="")
 tib <- subset(tib, clean!=",")
@@ -235,12 +199,18 @@ tokenized %>%
   mutate(clean = reorder(clean, n)) %>%
   ggplot(aes(n, clean)) +
   geom_col() +
-  labs(y = "Most common words", 
+  labs(y = "Most common words in first paragraphs", 
        x = "Word Occurrence Frequency") + 
   theme_classic()
+
+# ggsave(filename = "words_par.jpg",
+#        width = 4,
+#        height = 3,
+#        units = c("in"),
+#        dpi = 300)
 ```
 
-# 4. Visualize publications per day using headlines
+# 4. Visualize publications per day ? 
 
 # 4. Visualize word frequency using headlines 
 
@@ -250,7 +220,7 @@ headline <- names(nytDat)[21] #The 6th column, "response.doc.lead_paragraph", is
 tokenized_h <- nytDat %>%
   unnest_tokens(word, headline)
 
-tokenized_h[,34]
+#tokenized_h[,34]
 ```
 
 ## Transform headline words 
@@ -289,7 +259,16 @@ tokenized_h %>%
   theme_classic() + 
   labs(y = "Most common words in headlines",
        x = "Word Frequency")
+
+# ggsave(filename = "words_headlines.jpg", 
+#        width = 4, 
+#        height = 3, 
+#        units = c("in"), 
+#        dpi = 300)
 ```
+
+# 4. Comparing word frequencies of NY Times articles' first paragraphs and headlines
+
 
 
 # Assignment (Due by Week 3)
