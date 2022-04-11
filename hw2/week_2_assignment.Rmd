@@ -20,7 +20,7 @@ library(tidytext) #text data management and analysis
 library(ggplot2) #plot word frequencies and publication dates
 ```
 
-# 2. Connect to the New York Times API and send a query
+# Q2. Connect to the New York Times API and send a query
 
 - Query phrase: "bark beetle" 
 
@@ -72,7 +72,8 @@ Obtain multiple pages of query results
 - retrieved 35 pages of results 
 - retrieved 358 articles 
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
+#don't evaluate this code chunk every time to save time 
 initialQuery <- fromJSON(baseurl)
 
 maxPages <- round((initialQuery$response$meta$hits[1] / 10)-1) 
@@ -86,16 +87,19 @@ for(i in 0:maxPages){
   Sys.sleep(6) 
 }
 
-#save as CSV 
-```
-
-# 3. Visuzalize publications per day 
-
-```{r}
-class(nytSearch)
-
 #need to bind the pages and create a tibble from nytDat
 nytDat <- rbind_pages(pages)
+
+#save as bark beetle results as a CSV 
+write_csv(x = nytDat, path = here::here("data", "nytDat.csv"))
+
+```
+
+# Q3. Visuzalize publications per day 
+
+```{r}
+#read in saved CSV of data to save time 
+nytDat <- read_csv(here::here("data", "nytDat.csv"))
 
 nytDat %>%
   mutate(pubDay=gsub("T.*","",response.docs.pub_date)) %>%
@@ -122,7 +126,7 @@ tokenized <- nytDat %>%
 #tokenized[,34] 
 ```
 
-# 3. Visualize word frequency plotsusing the first paragraph of each article 
+# Q3. Visualize word frequency plotsusing the first paragraph of each article 
 - note that the most common words (occurring more than 100 times) are not at all meaningful 
 
 ```{r}
@@ -214,9 +218,22 @@ tokenized %>%
 #        dpi = 300)
 ```
 
-# 4. Visualize publications per day 
+# Q4. Visualize publications per day 
 
-# 4. Visualize word frequency using headlines 
+```{r}
+nytDat %>%
+  mutate(pubDay=gsub("T.*","",response.docs.pub_date)) %>%
+  group_by(pubDay) %>%
+  summarise(count=n()) %>%
+  filter(count >= 2) %>%
+  ggplot() +
+  geom_bar(aes(x=reorder(pubDay, count), y=count), stat="identity") + coord_flip() + 
+  labs(y = "Publication Day", 
+       x = "Number of Articles Published")
+```
+
+
+# Q4. Visualize word frequency using headlines 
 
 ```{r}
 headline <- names(nytDat)[21] #The 6th column, "response.doc.lead_paragraph", is the one we want here.  
@@ -251,7 +268,7 @@ tib <-subset(tokenized_h, clean!="")
 tokenized_h <- tib
 ```
 
-## 4. Visualize common words based on headlines 
+# Q4. Visualize common words based on headlines 
 ```{r}
 tokenized_h %>%
   count(clean, sort = TRUE) %>%
@@ -271,7 +288,7 @@ tokenized_h %>%
 #        dpi = 300)
 ```
 
-# 4. Comparing word frequencies of NY Times articles' first paragraphs and headlines
+# Q4. Comparing word frequencies of NY Times articles' first paragraphs and headlines
 
 The most immediate difference between the word frequency plots using either NY Times articles' first paragraphs or headlines is that the plot visualizing word frequency of first paragraphs has much larger word frequencies. For example, the most common word "trees" is used approximately 75 times in first paragraphs while the other plot shows the word "trees" was found in headlines only approximately 30 times. This makes sense given that paragraphs are much longer than headlines, so it's just more likely for a common word like "trees" to be used. 
 
