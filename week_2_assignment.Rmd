@@ -1,8 +1,10 @@
 ---
-title: "Topic 2: Text Data in R Assignment"
+title: 'EDS 231 Topic 2: Text Data in R Assignment'
 author: "Mia Forsline"
 date: "4/6/2022"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 # Set up: Load necessary packages 
@@ -70,7 +72,7 @@ Obtain multiple pages of query results
 - retrieved 35 pages of results 
 - retrieved 358 articles 
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 initialQuery <- fromJSON(baseurl)
 
 maxPages <- round((initialQuery$response$meta$hits[1] / 10)-1) 
@@ -84,15 +86,17 @@ for(i in 0:maxPages){
   Sys.sleep(6) 
 }
 
-class(nytSearch)
-#need to bind the pages and create a tibble from nytDat
-
-nytDat <- rbind_pages(pages)
+#save as CSV 
 ```
 
 # 3. Visuzalize publications per day 
 
 ```{r}
+class(nytSearch)
+
+#need to bind the pages and create a tibble from nytDat
+nytDat <- rbind_pages(pages)
+
 nytDat %>%
   mutate(pubDay=gsub("T.*","",response.docs.pub_date)) %>%
   group_by(pubDay) %>%
@@ -210,7 +214,7 @@ tokenized %>%
 #        dpi = 300)
 ```
 
-# 4. Visualize publications per day ? 
+# 4. Visualize publications per day 
 
 # 4. Visualize word frequency using headlines 
 
@@ -269,19 +273,8 @@ tokenized_h %>%
 
 # 4. Comparing word frequencies of NY Times articles' first paragraphs and headlines
 
+The most immediate difference between the word frequency plots using either NY Times articles' first paragraphs or headlines is that the plot visualizing word frequency of first paragraphs has much larger word frequencies. For example, the most common word "trees" is used approximately 75 times in first paragraphs while the other plot shows the word "trees" was found in headlines only approximately 30 times. This makes sense given that paragraphs are much longer than headlines, so it's just more likely for a common word like "trees" to be used. 
 
+Both plots shared exact words such as "trees," "beetle(s)", and "climate." However, there were some unique top words. For instance, headlines reported "elm" and "ancient" while first paragraphs reported "york" and "pine." 
 
-# Assignment (Due by Week 3)
-
-1.  Create a free New York Times account (<https://developer.nytimes.com/get-started>)
-
-2.  Pick an interesting environmental key word(s) and use the jsonlite package to query the API. Pick something high profile enough and over a large enough time frame that your query yields enough articles for an interesting examination.
-
-3.  Recreate the publications per day and word frequency plots using the first paragraph
-
--   Make some (at least 3) transformations to the corpus (add stopword(s), stem a key term and its variants, remove numbers)
-
-4.  Recreate the publications per day and word frequency plots using the headlines variable (response.docs.headline.main). Compare the distributions of word frequencies between the first paragraph and headlines. Do you see any difference?
-
-
-#knit to pdf to submit 
+The overall data distribution shapes looked very similar with one or two extremely common words and a gentle slope downward towards less frequent words. 
