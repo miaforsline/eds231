@@ -29,19 +29,11 @@ library(ggplot2) #plot word frequencies and publication dates
 key = "zwtPmtpUJiMGPfGjXz8maQyr3cx6YFdS"
 
 x <- fromJSON("http://api.nytimes.com/svc/search/v2/articlesearch.json?q=bark+beetle&api-key=zwtPmtpUJiMGPfGjXz8maQyr3cx6YFdS", 
-              flatten = TRUE) #the string following "key=" is your API key 
-
-class(x) #note that x is a list 
+              flatten = TRUE) #the string following "key=" is your API key
 
 #convert x to a dataframe 
 x <- x %>% 
   data.frame()
-
-#the dataframe is 10 x 33
-dim(x)
-
-#check the variable names in the dataframe 
-names(x)
 ```
 
 ## Examine a piece of text
@@ -133,17 +125,14 @@ The New York Times doesn't make full text of the articles available through the 
 
 - unnest the words from the first paragraph of each article 
 ```{r plot_frequencies}
-names(nytDat)
+#names(nytDat)
 
 paragraph <- names(nytDat)[6] #The 6th column, "response.doc.lead_paragraph", is the one we want here.  
 
 tokenized <- nytDat %>%
   unnest_tokens(word, paragraph)
-```
 
-View the unique words pulled from the first paragraph of each article 
-```{r plot_frequencies}
-tokenized[,34] 
+#tokenized[,34] 
 ```
 
 # 3. Visualize word frequency plotsusing the first paragraph of each article 
@@ -156,7 +145,8 @@ tokenized %>%
   mutate(word = reorder(word, n)) %>%
   ggplot(aes(n, word)) +
   geom_col() +
-  labs(y = NULL)
+  labs(y = "Most common words in first paragraph", 
+       x = "Word Frequency")
 ```
 
 # 4. Since this visual is not very helpful, we transform the corpus in various ways to help filter out less meaningful words from our visual 
@@ -287,7 +277,7 @@ tib <-subset(tokenized_h, clean!="")
 tokenized_h <- tib
 ```
 
-## Visualize common words based on headlines 
+## 4. Visualize common words based on headlines 
 ```{r}
 tokenized_h %>%
   count(clean, sort = TRUE) %>%
@@ -295,11 +285,14 @@ tokenized_h %>%
   mutate(clean = reorder(clean, n)) %>%
   ggplot(aes(n, clean)) +
   geom_col() +
-  labs(y = NULL)
+  labs(y = NULL) + 
+  theme_classic() + 
+  labs(y = "Most common words in headlines",
+       x = "Word Frequency")
 ```
 
 
-## Assignment (Due by Week 3)
+# Assignment (Due by Week 3)
 
 1.  Create a free New York Times account (<https://developer.nytimes.com/get-started>)
 
