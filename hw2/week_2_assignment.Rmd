@@ -140,7 +140,7 @@ tokenized %>%
        x = "Word Frequency")
 ```
 
-## Since this visual is not very helpful, we transform the corpus in various ways to help filter out less meaningful words from our visual 
+## Transform the corpus in various ways to help filter out less meaningful words from our visual 
 
 1. incorporate stop words
 2. stem tribe words
@@ -148,42 +148,55 @@ tokenized %>%
 4. remove possessive words 
 
 ```{r}
-
 #call common stop words from a lexicon 
 data(stop_words)
-stop_words
+#stop_words
 
 #use an anti-join to remove the stop words from our tokenized object 
 tokenized <- tokenized %>%
   anti_join(stop_words)
 
 #inspect the list of tokens (words)
-#tokenized$word
+tokenized$word
 
-clean_tokens <- str_replace_all(tokenized$word,"fringe[a-z,A-Z]*","fringe")
+#stem tribe words
+clean_tokens <- str_replace_all(tokenized$word,"beetle[a-z,A-Z]*","beetle")
 
 #check to see if the transformation worked 
-# %>% 
+# clean_tokens <- str_replace_all(tokenized$word,"beetle[a-z,A-Z]*","beetle") %>%
 #   as.data.frame()
 # clean_tokens$.
 
+#remove numbers 
 clean_tokens <- str_remove_all(clean_tokens, "[:digit:]") 
 
 #check to see if the transformation worked 
-# %>% 
+# clean_tokens <- str_remove_all(clean_tokens, "[:digit:]") %>%
 #   as.data.frame()
 # clean_tokens$.
 
-#clean_tokens <- gsub("’s", '', clean_tokens) 
+#remove " 's " from words using gsub()
+clean_tokens <- gsub("'s", '', clean_tokens)
 
-clean_tokens <- gsub("[^A-z]s", "", clean_tokens) 
-
-# %>% 
+# check to see if the transformation worked 
+# clean_tokens <- gsub("'s", '', clean_tokens) %>%
 #   as.data.frame()
 # clean_tokens$.
+
+#clean_tokens <- gsub("[^A-z]s", "", clean_tokens) 
+
+#remove the " 's " from words so they become duplicates 
+# clean_tokens <- gsub("[^A-z]s", "", clean_tokens) %>%
+#   as.data.frame()
+# clean_tokens$.
+
+#completely remove possessive nouns with apostrophes 
+# clean_tokens <- str_remove_all(clean_tokens, "\\w+[:punct:]\\w+") %>%
+#   as.data.frame()
+# clean_tokens$.
+
 
 #Put clean tokens into the `tokenized` dataframe 
-
 tokenized$clean <- clean_tokens
 ```
 
