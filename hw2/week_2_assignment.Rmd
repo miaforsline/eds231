@@ -157,7 +157,7 @@ tokenized <- tokenized %>%
   anti_join(stop_words)
 
 #inspect the list of tokens (words)
-tokenized$word
+#tokenized$word
 
 #stem tribe words
 clean_tokens <- str_replace_all(tokenized$word,"beetle[a-z,A-Z]*","beetle")
@@ -182,19 +182,6 @@ clean_tokens <- gsub("'s", '', clean_tokens)
 # clean_tokens <- gsub("'s", '', clean_tokens) %>%
 #   as.data.frame()
 # clean_tokens$.
-
-#clean_tokens <- gsub("[^A-z]s", "", clean_tokens) 
-
-#remove the " 's " from words so they become duplicates 
-# clean_tokens <- gsub("[^A-z]s", "", clean_tokens) %>%
-#   as.data.frame()
-# clean_tokens$.
-
-#completely remove possessive nouns with apostrophes 
-# clean_tokens <- str_remove_all(clean_tokens, "\\w+[:punct:]\\w+") %>%
-#   as.data.frame()
-# clean_tokens$.
-
 
 #Put clean tokens into the `tokenized` dataframe 
 tokenized$clean <- clean_tokens
