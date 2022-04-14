@@ -37,11 +37,68 @@ This assignment is designed to teach the user more about sentiment analysis usin
 
 #2. Choose a key search term or terms to define a set of articles.
 
+I searched for the term "chytrid" from 2020 - 2022 and filtered my results to include only News. 
+
 #3. Use your search term along with appropriate filters to obtain and download a batch of at least 100 full text search results (.docx).
 
 #4. Read your Nexis article document into RStudio.
 
+```{r}
+my_files <- list.files(pattern = ".docx", 
+                       path = here("data"),
+                       full.names = TRUE, 
+                       recursive = TRUE, 
+                       ignore.case = TRUE)
+
+#use lnt_read to read in a LexisNexis file then convert to an object of class 'LNT output' 
+dat <- lnt_read(my_files)
+
+meta_df <- dat@meta
+articles_df <- dat@articles
+paragraphs_df <- dat@paragraphs
+```
+
+
 #5. This time use the full text of the articles for the analysis. First clean any artifacts of the data collection process (hint: this type of thing should be removed: “Apr 04, 2022( Biofuels Digest: http://www.biofuelsdigest.com/ Delivered by Newstex”))
+
+```{r}
+#create a dataframe listing all article dates and headlines 
+dat2<- data_frame(element_id = seq(1:length(meta_df$Headline)), 
+                  Date = meta_df$Date, 
+                  Headline = meta_df$Headline) %>% 
+  janitor::clean_names()
+
+#remove duplicate headlines (now we have 181 headlines )
+dat2 <- dat2[!duplicated(dat2$headline), ]
+```
+
+
+```{r}
+#May be of use for assignment: using the full text from the articles
+paragraphs_dat <- data_frame(element_id = paragraphs_df$Art_ID, 
+                             Text = paragraphs_df$Paragraph)
+
+dat3 <- inner_join(dat2,paragraphs_dat, by = "element_id") %>% 
+  janitor::clean_names()
+
+#remove duplicate text rows 
+dat3 <- dat3[!duplicated(dat3$text), ]
+
+#remove blank text rows 
+dat3 <- subset(dat3, text != " ")
+
+#remove text rows that say "Graphic"
+dat3 <- subset(dat3, text != "Graphic")
+
+#remove rows that contain text that indicate an image 
+dat3 <- dat3[!grepl(" - ", dat3$text),]
+
+#remove text rows that have tag lines
+dat3 <- dat3[!grepl("Apr 0", dat3$text),]
+
+#remove rows that contain text that indicate an image 
+dat3 <- dat3[!grepl(" - ", dat3$text),]
+```
 
 #6. Explore your data a bit and try to replicate some of the analyses above presented in class if you’d like (not necessary).
 
