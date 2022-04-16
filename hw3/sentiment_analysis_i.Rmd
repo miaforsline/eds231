@@ -92,7 +92,13 @@ sentiment_df <- sentiment_df %>%
 
 ```{r}
 ggplot(data = sentiment_df, aes(x = date, color = polarity)) + 
-  stat_count(geom = 'line', aes(y = ..count..))
+  stat_count(geom = 'line', aes(y = ..count..)) + 
+  labs(y = "Developed Media Sentiment (no. headlines)",
+       x = "Date",
+       color = "Sentiment",
+       title = "IPCC Nexis Uni Sentiment from April 4 - 11") + 
+  scale_color_manual(values = c("blue", "gray", "red"),
+                     labels = c("Positive", "Neutral", "Negative"))
   
 ```
 
