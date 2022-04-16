@@ -39,6 +39,8 @@ This assignment is designed to teach the user more about sentiment analysis usin
 - read in the IPCC Nexis Uni data set
 - extract 100 headlines 
 - clean the dataset 
+- extract headlines text 
+- determine sentiments of each headline 
 
 ```{r}
 my_files <- list.files(pattern = "Nexis_IPCC_Results.docx", 
@@ -61,11 +63,7 @@ dat2 <- data_frame(element_id = seq(1:length(meta_df$Headline)),
 
 #remove duplicate headlines, if necessary (in this case, it's not) 
 dat2_clean <- dat2[!duplicated(dat2$headline), ]
-```
 
-- recreate a similar graph to figure 1A from Froelich et al. 
-
-```{r}
 #list of characters
 mytext <- get_sentences(dat2$headline)
 
@@ -78,9 +76,10 @@ sentiment_df <- inner_join(dat2, sent, by = "element_id")
 sentiment <- sentiment_by(sentiment_df$headline)
 
 #display table of sentences ordered by sentiment 
-sentiment_df %>%
-  arrange(sentiment)
+# sentiment_df %>%
+#   arrange(sentiment)
 ```
+
 - calculate polarity and assign values of -1, 0, or 1 to indicate negative, neutral, or positive 
 
 ```{r}
@@ -91,6 +90,8 @@ sentiment_df <- sentiment_df %>%
   mutate(polarity = factor(polarity, levels = c("1", "0", "-1")))
 ```
 
+- recreate a similar graph to figure 1A from Froelich et al. 
+
 ```{r, fig.cap = "Sentiment over time based on headlines with negative (red), neutral (grey), and positive (blue) titles.}
 ggplot(data = sentiment_df, aes(x = date, color = polarity)) + 
   stat_count(geom = 'line', aes(y = ..count..)) + 
@@ -99,17 +100,10 @@ ggplot(data = sentiment_df, aes(x = date, color = polarity)) +
        color = "Sentiment",
        title = "IPCC Nexis Uni Data Sentiment from April 4 - 11") + 
   scale_color_manual(values = c("blue", "gray", "red"),
-                     labels = c("Positive", "Neutral", "Negative"))
+                     labels = c("Positive", "Neutral", "Negative")) + 
+  theme_classic()
   
 ```
-
-
-```{r}
-# custom_stop_words <- bind_rows(tibble(word = c("your_word"),  
-#                                       lexicon = c("custom")), 
-#                                       stop_words)
-```
-
 
 #1. Access the Nexis Uni database through the UCSB library
 
@@ -128,8 +122,7 @@ my_files <- list.files(pattern = "chytrid.docx",
                        recursive = TRUE, 
                        ignore.case = TRUE)
 
-#use lnt_read to read in a LexisNexis
-file then convert to an object of class 'LNT output' 
+#use lnt_read to read in a LexisNexis file then convert to an object of class 'LNT output' 
 dat <- lnt_read(my_files)
 
 meta_df <- dat@meta
@@ -149,10 +142,7 @@ dat2<- data_frame(element_id = seq(1:length(meta_df$Headline)),
 
 #remove duplicate headlines (now we have 181 headlines )
 dat2 <- dat2[!duplicated(dat2$headline), ]
-```
 
-
-```{r}
 #May be of use for assignment: using the full text from the articles
 paragraphs_dat <- data_frame(element_id = paragraphs_df$Art_ID, 
                              Text = paragraphs_df$Paragraph)
@@ -300,69 +290,3 @@ book_sent_counts %>%
        y = NULL)
 ```
 
-### Introduction to the Nexis Uni data source
-
-```{r nexis_data, message=FALSE}
-#setwd("/Users/mateorobbins/Desktop/Git/test/nexis_dat")
-#to follow along with this example, download this .docx to your working directory: 
-#https://github.com/MaRo406/EDS_231-text-sentiment/blob/main/nexis_dat/Nexis_IPCC_Results.docx
-
-my_files <- list.files(pattern = ".docx", path = getwd(),
-                       full.names = TRUE, recursive = TRUE, ignore.case = TRUE)
-dat <- lnt_read(my_files) #Object of class 'LNT output'
-meta_df <- dat@meta
-articles_df <- dat@articles
-paragraphs_df <- dat@paragraphs
-
-dat2<- data_frame(element_id = seq(1:length(meta_df$Headline)), Date = meta_df$Date, Headline = meta_df$Headline)
-
-#May be of use for assignment: using the full text from the articles
-paragraphs_dat <- data_frame(element_id = paragraphs_df$Art_ID, Text  = paragraphs_df$Paragraph)
-
-dat3 <- inner_join(dat2,paragraphs_dat, by = "element_id")
-```
-
-```{r}
-#can we create a similar graph to Figure 3A from Froelich et al.? 
-mytext <- get_sentences(dat2$Headline)
-
-sent <- sentiment(mytext) #look at the entire headline and tries to correct for negation/context, then gives each headline a rating 
-
-sent_df <- inner_join(dat2, sent, by = "element_id")
-
-sentiment <- sentiment_by(sent_df$Headline)
-
-sent_df %>%
-  arrange(sentiment)
-```
-
-- calculate mean sentiment per day based on the average sentiment of articles per day 
-- plot different lines based on pos/neg 
-
-```{r custom_stop_words}
-custom_stop_words <- bind_rows(tibble(word = c("your_word"),  
-                                      lexicon = c("custom")), 
-                               stop_words)
-```
-
-
-
-## Assignment (Due 4/19 by 5PM)
-
-1.  Access the Nexis Uni database through the UCSB library: <https://www.library.ucsb.edu/research/db/211>
-
-2.  Choose a key search term or terms to define a set of articles. 
-
-3.  Use your search term along with appropriate filters to obtain and download a batch of at least 100 full text search results (.docx).  
-
-4.  Read your Nexis article document into RStudio. 
-
-5.  This time use the full text of the articles for the analysis.  First clean any artifacts of the data collection process (hint: this type of thing should be removed: "Apr 04, 2022( Biofuels Digest: http://www.biofuelsdigest.com/ Delivered by Newstex"))
-
-- regex 
-
-6.  Explore your data a bit and try to replicate some of the analyses above presented in class if you'd like (not necessary).  
-
-7. Plot the amount of emotion words (the 8 from nrc) as a percentage of all the emotion words used each day (aggregate text from articles published on the same day).  How does the distribution of emotion words change over time?  Can you think of any reason this would be the case?
-
-- line plot 
