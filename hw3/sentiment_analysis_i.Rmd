@@ -33,6 +33,77 @@ Sentiment analysis is a tool for assessing the mood of a piece of text. For exam
 
 This assignment is designed to teach the user more about sentiment analysis using tools such as the [Nexis Uni database through the UCSB Library](https://www.library.ucsb.edu/research/db/211). 
 
+#0. Using the “IPCC” Nexis Uni data set from the class presentation and the pseudo code we discussed, recreate Figure 1A from Froelich et al. (Date x # of 1) positive, 2) negative, 3) neutral headlines):
+
+- read in the IPCC Nexis Uni data set
+- extract 100 headlines 
+- clean the dataset 
+
+```{r}
+my_files <- list.files(pattern = "Nexis_IPCC_Results.docx", 
+                       path = here("data"),
+                       full.names = TRUE, 
+                       recursive = TRUE, 
+                       ignore.case = TRUE)
+
+#use lnt_read to read in a LexisNexis file then convert to an object of class 'LNT output' 
+dat <- lnt_read(my_files)
+
+meta_df <- dat@meta
+articles_df <- dat@articles
+paragraphs_df <- dat@paragraphs
+
+dat2 <- data_frame(element_id = seq(1:length(meta_df$Headline)), 
+                   Date = meta_df$Date, 
+                   Headline = meta_df$Headline) %>% 
+        janitor::clean_names()
+
+#remove duplicate headlines, if necessary (in this case, it's not) 
+dat2_clean <- dat2[!duplicated(dat2$headline), ]
+```
+
+- recreate a similar graph to figure 1A from Froelich et al. 
+
+```{r}
+#list of characters
+mytext <- get_sentences(dat2$headline)
+
+#sentiments from the text 
+sent <- sentiment(mytext)
+
+#create dataframe of sentiments of each sentence 
+sentiment_df <- inner_join(dat2, sent, by = "element_id")
+
+sentiment <- sentiment_by(sentiment_df$headline)
+
+#display table of sentences ordered by sentiment 
+sentiment_df %>%
+  arrange(sentiment)
+```
+- calculate polarity and assign values of -1, 0, or 1 to indicate negative, neutral, or positive 
+
+```{r}
+sentiment_df$polarity <- ifelse(sentiment_df$sentiment <0, -1, ifelse(sentiment_df$sentiment > 0, 1, 0))
+
+#change polarity to an ordered factor 
+sentiment_df <- sentiment_df %>% 
+  mutate(polarity = factor(polarity, levels = c("1", "0", "-1")))
+```
+
+```{r}
+ggplot(data = sentiment_df, aes(x = date, color = polarity)) + 
+  stat_count(geom = 'line', aes(y = ..count..))
+  
+```
+
+
+```{r}
+custom_stop_words <- bind_rows(tibble(word = c("your_word"),  
+                                      lexicon = c("custom")), 
+                                      stop_words)
+```
+
+
 #1. Access the Nexis Uni database through the UCSB library
 
 #2. Choose a key search term or terms to define a set of articles.
@@ -44,7 +115,7 @@ I searched for the term "chytrid" from 2020 - 2022 and filtered my results to in
 #4. Read your Nexis article document into RStudio.
 
 ```{r}
-my_files <- list.files(pattern = ".docx", 
+my_files <- list.files(pattern = "chytrid.docx", 
                        path = here("data"),
                        full.names = TRUE, 
                        recursive = TRUE, 
@@ -101,6 +172,11 @@ dat3 <- dat3[!grepl(" - ", dat3$text),]
 ```
 
 #6. Explore your data a bit and try to replicate some of the analyses above presented in class if you’d like (not necessary).
+
+```{r}
+
+```
+
 
 #7. Plot the amount of emotion words (the 8 from nrc) as a percentage of all the emotion words used each day (aggregate text from articles published on the same day). How does the distribution of emotion words change over time? Can you think of any reason this would be the case?
 
