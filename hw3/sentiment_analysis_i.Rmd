@@ -168,7 +168,7 @@ write_csv(dat3, here::here("data", "chytrid_dat3.csv"))
 
 - start by using the Bing sentiment analysis lexicon
 
-```{r get_bing}
+```{r}
 bing_sent <- get_sentiments('bing') #grab the bing sentiment lexicon using the tidytext package
 
 #head(bing_sent, n = 20)
@@ -195,7 +195,7 @@ chytrid_text <- read_csv(here::here("data", "chytrid_dat3.csv"))
 - We can center the scores around an offset point equal to the average page sentiment score. This lets us measure the sentiment of a given page relative to the overall sentiment of the book.
 - in short, is this page more or less pos vs neg ? 
 
-```{r apply_sent_scores}
+```{r}
 sent_scores <- sent_words %>%
   count(sentiment, date) %>%
   spread(sentiment, n) %>%
@@ -215,7 +215,7 @@ ggplot(sent_scores, aes(x = date)) +
 
 - use NRC Lexicon to look at the most common sentiment words in the data set
 
-```{r nrc_sentiment}
+```{r}
 nrc_sent <- get_sentiments('nrc') #requires downloading a large dataset via prompt
 #unique(nrc_sent$sentiment)
 
@@ -226,14 +226,12 @@ nrc_word_counts <- text_words %>%
 
 #remove "postive" and "negative" sentiments to leave only the 8 emotion words 
 nrc_word_counts <- subset(nrc_word_counts, sentiment != "positive" & sentiment != "negative")
+```
 
-#calculate % of emotion words used each day 
-# nrc_word_counts_2 <- nrc_word_counts %>% 
-#   group_by(date) %>% 
-#   mutate(total_n = sum(n),
-#          prop = n / total_n,
-#          perc = 100 * prop)
+- calculate the % of all emotion words used each day 
 
+```{r}
+#count the number of words in each emotion category per day 
 nrc_word_counts_3 <- nrc_word_counts %>% 
   group_by(date, sentiment) %>% 
   summarise(total_n = sum(n)) %>% 
@@ -243,56 +241,31 @@ nrc_word_counts_3 <- nrc_word_counts %>%
 #replace NA values with 0 
 nrc_word_counts_3[is.na(nrc_word_counts_3)] = 0
 
+#calculate the total number of emotion words used each day 
 nrc_word_counts_3 <- nrc_word_counts_3 %>% 
   mutate(total_n = anger + anticipation + disgust + fear + joy + sadness + surprise + trust)
 
+#pivot longer to make a dataframe that can easily be used in ggplot() 
 nrc_word_counts_3 <- nrc_word_counts_3 %>% 
   pivot_longer(cols = !c("date", "total_n"), names_to = "emotion", values_to = "n")
 
+#calculate the %
 nrc_word_counts_3 <- nrc_word_counts_3 %>% 
   mutate(perc = n / total_n)
-
-
-#          anger_perc = 100 * (anger / total_n),
-#          antic_perc = 100 * (anticipation / total_n), 
-#          disgust_perc = 100 * (disgust / total_n), 
-#          fear_perc = 100 * (fear / total_n), 
-#          joy_perc = 100 * (joy / total_n), 
-#          sad_perc = 100 * (sadness / total_n), 
-#          surprise_perc = 100 * (surprise / total_n), 
-#          trust_perc = 100 * (trust / total_n)
-#          )
-# 
-# nrc_word_counts_4 <- nrc_word_counts %>% 
-#   group_by(date) %>% 
-#   summarise(across(sentiment, mean(n)))
-
-
 
 ```
 
 Plot the % of all emotion words used each day 
 
 ```{r}
-# ggplot(data = nrc_word_counts_2, aes(x = date, y = perc, color = sentiment, fill = sentiment)) + 
-#   geom_col() + 
-#   theme_classic() + 
-#   labs(x = "Date", 
-#        y = "% of Sentiment Contributed Per Day ")
-# 
-# ggplot(data = nrc_word_counts_2, aes(x = date, y = perc, color = sentiment)) + 
-#   geom_line() +
-#   theme_classic() + 
-#   labs(x = "Date", 
-#        y = "% of Sentiment Contributed Per Day ")
-
-ggplot(data = nrc_word_counts_2, aes(x = date, y = perc, color = sentiment)) + 
-  geom_point(alpha = 0.25) +
+ggplot(data = nrc_word_counts_3, aes(x = date, y = perc, color = emotion)) + 
+  #geom_point(alpha = 0.25) +
   geom_smooth(method = lm, se = FALSE) + 
   theme_classic() + 
   labs(x = "Date", 
        y = "% of Sentiment Contributed Per Day ", 
-       color = "Sentiment Emotion Word") 
+       color = "Sentiment Emotion Word", 
+       title = "Sentiment Analysis of Chytrid Articles") 
 
 ```
 
