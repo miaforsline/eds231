@@ -133,17 +133,11 @@ paragraphs_df <- dat@paragraphs
 
 #5. This time use the full text of the articles for the analysis. First clean any artifacts of the data collection process (hint: this type of thing should be removed: “Apr 04, 2022( Biofuels Digest: http://www.biofuelsdigest.com/ Delivered by Newstex”))
 
+- extract full text 
+- clean up text to remove duplicates, etc. 
+
 ```{r}
-#create a dataframe listing all article dates and headlines 
-dat2<- data_frame(element_id = seq(1:length(meta_df$Headline)), 
-                  Date = meta_df$Date, 
-                  Headline = meta_df$Headline) %>% 
-  janitor::clean_names()
-
-#remove duplicate headlines (now we have 181 headlines )
-dat2 <- dat2[!duplicated(dat2$headline), ]
-
-#May be of use for assignment: using the full text from the articles
+# extract full text from the articles
 paragraphs_dat <- data_frame(element_id = paragraphs_df$Art_ID, 
                              Text = paragraphs_df$Paragraph)
 
@@ -172,23 +166,16 @@ write_csv(dat3, here::here("data", "chytrid_dat3.csv"))
 
 #6. Explore your data a bit and try to replicate some of the analyses above presented in class if you’d like (not necessary).
 
-```{r}
+- start by using the Bing sentiment analysis lexicon
 
-```
-
-
-#7. Plot the amount of emotion words (the 8 from nrc) as a percentage of all the emotion words used each day (aggregate text from articles published on the same day). How does the distribution of emotion words change over time? Can you think of any reason this would be the case?
-
-
-We'll start by using the Bing sentiment analysis lexicon.
-- Bing lexicon 
 ```{r get_bing}
 bing_sent <- get_sentiments('bing') #grab the bing sentiment lexicon using the tidytext package
 
 #head(bing_sent, n = 20)
 ```
 
-Here is the starting point for reading in the data as a .csv. We need to unnest the text to the word level so we can label the individual sentiment words. Let's also remove stop words as standard text cleaning procedure. Note: Not every English word is in the lexicons because many English words are pretty neutral.
+- unnest the text to the word level so we can label the individual sentiment words
+- remove stop words as standard text cleaning procedure
 
 ```{r}
 chytrid_text <- read_csv(here::here("data", "chytrid_dat3.csv"))
@@ -204,7 +191,8 @@ chytrid_text <- read_csv(here::here("data", "chytrid_dat3.csv"))
  #head(sent_words) 
 ```
 
-Create a sentiment score by counting the number of sentiment words occurring per page. We can center the scores around an offset point equal to the average page sentiment score. This lets us measure the sentiment of a given page relative to the overall sentiment of the book.
+- create a sentiment score by counting the number of sentiment words occurring per day
+- We can center the scores around an offset point equal to the average page sentiment score. This lets us measure the sentiment of a given page relative to the overall sentiment of the book.
 - in short, is this page more or less pos vs neg ? 
 
 ```{r apply_sent_scores}
@@ -219,74 +207,92 @@ ggplot(sent_scores, aes(x = date)) +
   #coord_flip() +
   theme(axis.title.y = element_blank()) +
   labs(title = "Sentiment analysis: chytrid",
-       y = 'Sentiment score')
-         
-         
-# , #single sentiment score per headline
-#   offset = mean(positive - negative), #what is the average sentiment per page? 
-#   offset_score = (positive - negative) - offset) %>% #how does this page's sentiment compare to that of the average page?
-#   arrange(desc(raw_score))
-
-#sent_scores #sorted by the highest offset_score 
-
-
+       y = "Raw sentiment score", 
+       x = "Date")
 ```
 
+#7. Plot the amount of emotion words (the 8 from nrc) as a percentage of all the emotion words used each day (aggregate text from articles published on the same day). How does the distribution of emotion words change over time? Can you think of any reason this would be the case?
 
-
-##### Origin of the NRC lexicon
-
-"These guys selected about 10,000 words from an existing thesaurus... and then created a set of five questions to ask about each word that would reveal the emotions and polarity associated with it. That's a total of over 50,000 questions.
-
-They then asked these questions to over 2000 people, or Turkers, on Amazon's Mechanical Turk website, paying 4 cents for each set of properly answered questions.
-
-The result is a comprehensive word-emotion lexicon for over 10,000 words."
-
-Let's take a look at the most common sentiment words in the data set
+- use NRC Lexicon to look at the most common sentiment words in the data set
 
 ```{r nrc_sentiment}
 nrc_sent <- get_sentiments('nrc') #requires downloading a large dataset via prompt
 #unique(nrc_sent$sentiment)
 
-#nrc_fear <- get_sentiments("nrc") %>% 
-  filter(sentiment == "fear")
-
-#most common words by sentiment
-# fear_words <- over_text  %>%
-#   unnest_tokens(output = word, input = text, token = 'words') %>%
-#   inner_join(nrc_fear) %>%
-#   count(word, sort = TRUE)
-```
-
-```{r}
 nrc_word_counts <- text_words %>%
   inner_join(get_sentiments("nrc")) %>%
-  count(word, sentiment, sort = TRUE) %>%
+  count(word, sentiment, date, sort = TRUE) %>%
   ungroup()
+
+#remove "postive" and "negative" sentiments to leave only the 8 emotion words 
+nrc_word_counts <- subset(nrc_word_counts, sentiment != "positive" & sentiment != "negative")
+
+#calculate % of emotion words used each day 
+# nrc_word_counts_2 <- nrc_word_counts %>% 
+#   group_by(date) %>% 
+#   mutate(total_n = sum(n),
+#          prop = n / total_n,
+#          perc = 100 * prop)
+
+nrc_word_counts_3 <- nrc_word_counts %>% 
+  group_by(date, sentiment) %>% 
+  summarise(total_n = sum(n)) %>% 
+  spread(sentiment, total_n) %>% 
+  ungroup() 
+
+#replace NA values with 0 
+nrc_word_counts_3[is.na(nrc_word_counts_3)] = 0
+
+nrc_word_counts_3 <- nrc_word_counts_3 %>% 
+  mutate(total_n = anger + anticipation + disgust + fear + joy + sadness + surprise + trust)
+
+nrc_word_counts_3 <- nrc_word_counts_3 %>% 
+  pivot_longer(cols = !c("date", "total_n"), names_to = "emotion", values_to = "n")
+
+nrc_word_counts_3 <- nrc_word_counts_3 %>% 
+  mutate(perc = n / total_n)
+
+
+#          anger_perc = 100 * (anger / total_n),
+#          antic_perc = 100 * (anticipation / total_n), 
+#          disgust_perc = 100 * (disgust / total_n), 
+#          fear_perc = 100 * (fear / total_n), 
+#          joy_perc = 100 * (joy / total_n), 
+#          sad_perc = 100 * (sadness / total_n), 
+#          surprise_perc = 100 * (surprise / total_n), 
+#          trust_perc = 100 * (trust / total_n)
+#          )
+# 
+# nrc_word_counts_4 <- nrc_word_counts %>% 
+#   group_by(date) %>% 
+#   summarise(across(sentiment, mean(n)))
+
+
+
 ```
 
+Plot the % of all emotion words used each day 
 
-Let's break it out and plot the contributions by particular words different sentiment categories
-```{r sent_counts}
-book_sent_counts <- text_words %>%
-        group_by(date) %>%
-        # mutate(page_num = 1:n(),
-        #        index = round(page_num / n(), 2)) %>%
-        #unnest_tokens(word, line) %>%
-        inner_join(get_sentiments("nrc")) %>%
-        group_by(sentiment) %>%
-        count(word, sentiment, sort = TRUE) %>%
-        ungroup()
+```{r}
+# ggplot(data = nrc_word_counts_2, aes(x = date, y = perc, color = sentiment, fill = sentiment)) + 
+#   geom_col() + 
+#   theme_classic() + 
+#   labs(x = "Date", 
+#        y = "% of Sentiment Contributed Per Day ")
+# 
+# ggplot(data = nrc_word_counts_2, aes(x = date, y = perc, color = sentiment)) + 
+#   geom_line() +
+#   theme_classic() + 
+#   labs(x = "Date", 
+#        y = "% of Sentiment Contributed Per Day ")
 
-book_sent_counts %>%
-  group_by(sentiment) %>%
-  slice_max(n, n = 10) %>% 
-  ungroup() %>%
-  mutate(word = reorder(word, n)) %>%
-  ggplot(aes(n, word, fill = sentiment)) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~sentiment, scales = "free_y") +
-  labs(x = "Contribution to sentiment",
-       y = NULL)
+ggplot(data = nrc_word_counts_2, aes(x = date, y = perc, color = sentiment)) + 
+  geom_point(alpha = 0.25) +
+  geom_smooth(method = lm, se = FALSE) + 
+  theme_classic() + 
+  labs(x = "Date", 
+       y = "% of Sentiment Contributed Per Day ", 
+       color = "Sentiment Emotion Word") 
+
 ```
 
