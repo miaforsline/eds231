@@ -1,7 +1,7 @@
 ---
-title: 'topic 3: sentiment analysis i'
+title: 'Topic 3: Sentiment Analysis I'
 author: "Mia Forsline"
-date: "4/13/2022"
+date: "4/20/2022"
 output:
   pdf_document: default
   html_document: default
