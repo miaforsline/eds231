@@ -6,7 +6,6 @@ output:
   pdf_document: default
   html_document: default
 ---
-# Set up 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE,
@@ -91,13 +90,18 @@ sentiment_df$polarity <- ifelse(sentiment_df$sentiment <0, -1, ifelse(sentiment_
 #change polarity to an ordered factor 
 sentiment_df <- sentiment_df %>% 
   mutate(polarity = factor(polarity, levels = c("1", "0", "-1")))
+
+#group polarity based by date 
+sentiment_df_grouped <- sentiment_df %>% 
+  count(polarity, date)
 ```
 
 - recreate a similar graph to figure 1A from Froelich et al. 
 
 ```{r, fig.cap = "Sentiment over time based on headlines with negative (red), neutral (grey), and positive (blue) titles."}
-ggplot(data = sentiment_df, aes(x = date, color = polarity)) + 
-  stat_count(geom = 'line', aes(y = ..count..)) + 
+
+ggplot(data = sentiment_df_grouped, aes(x = date, y = n, color = polarity)) + 
+  geom_line() + 
   labs(y = "Developed Media Sentiment (no. headlines)",
        x = "Date",
        color = "Sentiment",
