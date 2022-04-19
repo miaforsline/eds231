@@ -30,19 +30,19 @@ librarian::shelf(
   )
 ```
 
-# Introduction 
+# Introduction
 
-Sentiment analysis is a tool for assessing the mood of a piece of text. For example, we can use sentiment analysis to understand public perceptions of topics in environmental policy like energy, climate, and conservation. 
+Sentiment analysis is a tool for assessing the mood of a piece of text. For example, we can use sentiment analysis to understand public perceptions of topics in environmental policy like energy, climate, and conservation.
 
-This assignment is designed to teach the user more about sentiment analysis using tools such as the [Nexis Uni database through the UCSB Library](https://www.library.ucsb.edu/research/db/211). 
+This assignment is designed to teach the user more about sentiment analysis using tools such as the [Nexis Uni database through the UCSB Library](https://www.library.ucsb.edu/research/db/211).
 
-# 0. Using the “IPCC” Nexis Uni data set from the class presentation and the pseudo code we discussed, recreate Figure 1A from Froelich et al. (Date x # of 1) positive, 2) negative, 3) neutral headlines):
+# 0. Using the "IPCC" Nexis Uni data set from the class presentation and the pseudo code we discussed, recreate Figure 1A from Froelich et al. (Date x \# of 1) positive, 2) negative, 3) neutral headlines):
 
-- read in the IPCC Nexis Uni data set
-- extract 100 headlines 
-- clean the dataset 
-- extract headlines text 
-- determine sentiments of each headline 
+-   read in the IPCC Nexis Uni data set
+-   extract 100 headlines
+-   clean the dataset
+-   extract headlines text
+-   determine sentiments of each headline
 
 ```{r}
 my_files <- list.files(pattern = "Nexis_IPCC_Results.docx", 
@@ -82,7 +82,7 @@ sentiment <- sentiment_by(sentiment_df$headline)
 #   arrange(sentiment)
 ```
 
-- calculate polarity and assign values of -1, 0, or 1 to indicate negative, neutral, or positive 
+-   calculate polarity and assign values of -1, 0, or 1 to indicate negative, neutral, or positive
 
 ```{r}
 sentiment_df$polarity <- ifelse(sentiment_df$sentiment <0, -1, ifelse(sentiment_df$sentiment > 0, 1, 0))
@@ -96,7 +96,7 @@ sentiment_df_grouped <- sentiment_df %>%
   count(polarity, date)
 ```
 
-- recreate a similar graph to figure 1A from Froelich et al. 
+-   recreate a similar graph to figure 1A from Froelich et al.
 
 ```{r, fig.cap = "Sentiment over time based on headlines with negative (red), neutral (grey), and positive (blue) titles."}
 
@@ -112,11 +112,13 @@ ggplot(data = sentiment_df_grouped, aes(x = date, y = n, color = polarity)) +
   
 ```
 
+\pagebreak
+
 # 1. Access the Nexis Uni database through the UCSB library
 
 # 2. Choose a key search term or terms to define a set of articles.
 
-I searched for the term "chytrid" from 2020 - 2022 and filtered my results to include only News. 
+I searched for the term "chytrid" from 2020 - 2022 and filtered my results to include only News.
 
 # 3. Use your search term along with appropriate filters to obtain and download a batch of at least 100 full text search results (.docx).
 
@@ -137,11 +139,10 @@ articles_df <- dat@articles
 paragraphs_df <- dat@paragraphs
 ```
 
+# 5. This time use the full text of the articles for the analysis. First clean any artifacts of the data collection process (hint: this type of thing should be removed: "Apr 04, 2022( Biofuels Digest: <http://www.biofuelsdigest.com/> Delivered by Newstex"))
 
-# 5. This time use the full text of the articles for the analysis. First clean any artifacts of the data collection process (hint: this type of thing should be removed: “Apr 04, 2022( Biofuels Digest: http://www.biofuelsdigest.com/ Delivered by Newstex”))
-
-- extract full text 
-- clean up text to remove duplicates, etc. 
+-   extract full text
+-   clean up text to remove duplicates, etc.
 
 ```{r}
 # extract full text from the articles
@@ -171,9 +172,9 @@ write_csv(dat3, here::here("data", "chytrid_dat3.csv"))
 
 ```
 
-# 6. Explore your data a bit and try to replicate some of the analyses above presented in class if you’d like (not necessary).
+# 6. Explore your data a bit and try to replicate some of the analyses above presented in class if you'd like (not necessary).
 
-- start by using the Bing sentiment analysis lexicon
+-   start by using the Bing sentiment analysis lexicon
 
 ```{r}
 bing_sent <- get_sentiments('bing') #grab the bing sentiment lexicon using the tidytext package
@@ -181,8 +182,8 @@ bing_sent <- get_sentiments('bing') #grab the bing sentiment lexicon using the t
 #head(bing_sent, n = 20)
 ```
 
-- unnest the text to the word level so we can label the individual sentiment words
-- remove stop words as standard text cleaning procedure
+-   unnest the text to the word level so we can label the individual sentiment words
+-   remove stop words as standard text cleaning procedure
 
 ```{r}
 chytrid_text <- read_csv(here::here("data", "chytrid_dat3.csv"))
@@ -198,9 +199,9 @@ chytrid_text <- read_csv(here::here("data", "chytrid_dat3.csv"))
  #head(sent_words) 
 ```
 
-- create a sentiment score by counting the number of sentiment words occurring per day
-- We can center the scores around an offset point equal to the average page sentiment score. This lets us measure the sentiment of a given page relative to the overall sentiment of the book.
-- in short, is this page more or less pos vs neg ? 
+-   create a sentiment score by counting the number of sentiment words occurring per day
+-   We can center the scores around an offset point equal to the average page sentiment score. This lets us measure the sentiment of a given page relative to the overall sentiment of the book.
+-   in short, is this page more or less pos vs neg ?
 
 ```{r}
 sent_scores <- sent_words %>%
@@ -220,7 +221,7 @@ ggplot(sent_scores, aes(x = date)) +
 
 # 7. Plot the amount of emotion words (the 8 from nrc) as a percentage of all the emotion words used each day (aggregate text from articles published on the same day). How does the distribution of emotion words change over time? Can you think of any reason this would be the case?
 
-- use NRC Lexicon to look at the most common sentiment words in the data set
+-   use NRC Lexicon to look at the most common sentiment words in the data set
 
 ```{r}
 nrc_sent <- get_sentiments('nrc') #requires downloading a large dataset via prompt
@@ -235,7 +236,7 @@ nrc_word_counts <- text_words %>%
 nrc_word_counts <- subset(nrc_word_counts, sentiment != "positive" & sentiment != "negative")
 ```
 
-- calculate the % of all emotion words used each day 
+-   calculate the % of all emotion words used each day
 
 ```{r}
 #count the number of words in each emotion category per day 
@@ -262,7 +263,7 @@ nrc_word_counts_3 <- nrc_word_counts_3 %>%
 
 ```
 
-Plot the % of all emotion words used each day 
+Plot the % of all emotion words used each day
 
 ```{r}
 ggplot(data = nrc_word_counts_3, aes(x = date, y = perc, color = emotion)) + 
@@ -276,3 +277,10 @@ ggplot(data = nrc_word_counts_3, aes(x = date, y = perc, color = emotion)) +
 
 ```
 
+Throughout the year of 2021, articles about "chytrid":
+
+-   decreased in sentiments such as anger, anticipation, and surprise;
+-   increased in sentiments such as anger and fear;
+-   and stayed fairly stable for sentiments such as sadness and joy.
+
+These trends may be due to more research being done on the subject of chytridiomycosis (aka "chytrid"), a deadly fungal disease that is devastating amphibian populations all around the world. Thus, there may be less surprise about the disease as it becomes more studied and well known but more fear about its consequences as it continues to spread.
