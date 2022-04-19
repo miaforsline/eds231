@@ -132,11 +132,21 @@ my_files <- list.files(pattern = "chytrid.docx",
                        ignore.case = TRUE)
 
 #use lnt_read to read in a LexisNexis file then convert to an object of class 'LNT output' 
+#prompts the user to select English or Spanish language 
 dat <- lnt_read(my_files)
+
 
 meta_df <- dat@meta
 articles_df <- dat@articles
 paragraphs_df <- dat@paragraphs
+
+dat2<- data_frame(element_id = seq(1:length(meta_df$Headline)), 
+                  Date = meta_df$Date, 
+                  Headline = meta_df$Headline) %>% 
+  janitor::clean_names()
+
+#remove duplicate headlines (now we have 181 headlines )
+dat2 <- dat2[!duplicated(dat2$headline), ]
 ```
 
 # 5. This time use the full text of the articles for the analysis. First clean any artifacts of the data collection process (hint: this type of thing should be removed: "Apr 04, 2022( Biofuels Digest: <http://www.biofuelsdigest.com/> Delivered by Newstex"))
@@ -149,7 +159,7 @@ paragraphs_df <- dat@paragraphs
 paragraphs_dat <- data_frame(element_id = paragraphs_df$Art_ID, 
                              Text = paragraphs_df$Paragraph)
 
-dat3 <- inner_join(dat2,paragraphs_dat, by = "element_id") %>% 
+dat3 <- inner_join(dat2, paragraphs_dat, by = "element_id") %>% 
   janitor::clean_names()
 
 #remove duplicate text rows 
@@ -281,6 +291,6 @@ Throughout the year of 2021, articles about "chytrid":
 
 -   decreased in sentiments such as anger, anticipation, and surprise;
 -   increased in sentiments such as anger and fear;
--   and stayed fairly stable for sentiments such as sadness and joy.
+-   and stayed fairly stable for sentiments such as sadness, joy, and disgust.
 
 These trends may be due to more research being done on the subject of chytridiomycosis (aka "chytrid"), a deadly fungal disease that is devastating amphibian populations all around the world. Thus, there may be less surprise about the disease as it becomes more studied and well known but more fear about its consequences as it continues to spread.
