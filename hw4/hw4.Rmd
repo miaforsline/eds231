@@ -94,12 +94,25 @@ words <- tweets %>%
 # 2. Compare the ten most common terms in the tweets per day. Do you notice anything interesting?
 
 - identify the top 10 most common words in all tweets for the entire time period
+- graph 
 ```{r}
 common_words <- words %>% 
   count(word) %>% 
   arrange(desc(n)) %>% 
   slice_head(n = 10)
-  
+
+common_words_string <- common_words$word
+
+common_words_over_time <- words %>% 
+  subset(word %in% c(common_words_string))
+
+common_words_count <- common_words_over_time %>% 
+  group_by(date) %>% 
+  count(word)
+
+ggplot(data = common_words_count, aes(x = date, y = n, color = word)) +
+  geom_line() + 
+  theme_classic()
 ```
 
 
