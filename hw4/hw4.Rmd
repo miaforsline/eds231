@@ -22,6 +22,7 @@ librarian::shelf(
   quanteda.sentiment,
   quanteda.textstats,
   reshape2,
+  sentimentr,
   tidyr, #text analysis in R
   tidytext,
   tidyverse,
@@ -203,5 +204,29 @@ head(textstat_polarity(tokens, data_dictionary_LSD2015, fun = sent_logit))
 ```
 
 
-
 # 5. The Twitter data download comes with a variable called “Sentiment” that must be calculated by Brandwatch. Use your own method to assign each tweet a polarity score (Positive, Negative, Neutral) and compare your classification to Brandwatch’s (hint: you’ll need to revisit the “raw_tweets” data frame).
+
+```{r}
+raw_tweets <- read.csv("https://raw.githubusercontent.com/MaRo406/EDS_231-text-sentiment/main/dat/IPCC_tweets_April1-10_sample.csv", header=TRUE)
+
+dat <- raw_tweets[,c(5,7)] # Extract Date and Title fields (title = full text)
+#dim(dat) = 10% sample of all the tweets that fit the time frame + topic 
+
+tweets <- tibble(text = dat$Title,
+                  id = seq(1:length(dat$Title)),
+                 date = as.Date(dat$Date,'%m/%d/%y'))
+
+#list of characters
+mytext <- get_sentences(tweets$text)
+
+#sentiments from the text 
+sent <- sentiment(mytext) %>% 
+  group_by(element_id) %>% 
+  summarise(avg_sentiment = mean(sentiment))
+
+#create dataframe of sentiments of each sentence 
+sentiment_df <- inner_join(raw_tweets, sent, by = "element_id")
+
+sentiment <- sentiment_by(sentiment_df$headline)
+```
+

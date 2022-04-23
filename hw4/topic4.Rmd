@@ -230,7 +230,6 @@ hash_tib %>%
 Create the sparse matrix representation known as the document-feature matrix. quanteda's textstat_polarity function has multiple ways to combine polarity to a single score. The sent_logit value to fun argument is the log of (pos/neg) counts.
 
 ```{r}
-
 dfm <- dfm(tokens) #document feature matrix of all words
 
 topfeatures(dfm, 12) #what are the most freq words? 
@@ -241,8 +240,15 @@ dfm.sentiment <- dfm_lookup(dfm, dictionary = data_dictionary_LSD2015) #quanteda
 #neg_positive ("not happy")
 #neg_neg (2 negatives cancel out) 
 
-head(textstat_polarity(tokens, data_dictionary_LSD2015, fun = sent_logit))
+sentiment_df <- textstat_polarity(tokens, data_dictionary_LSD2015, fun = sent_logit)
 #calculate sentiment in a more detailed way = logit of the count = continuous scale rather than binary 
+
+sentiment_df$polarity <- ifelse(sentiment_df$sentiment <0, -1, 
+                                ifelse(sentiment_df$sentiment > 0, 1, 0))
+
+#change polarity to an ordered factor 
+# sentiment_df <- sentiment_df %>% 
+#   mutate(polarity = factor(polarity, levels = c("1", "0", "-1")))
 
 ```
 
