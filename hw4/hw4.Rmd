@@ -73,7 +73,7 @@ bing_sent <- get_sentiments('bing')
 nrc_sent <- get_sentiments('nrc')
 ```
 
-
+Tokenize the Tweets into individual words 
 ```{r cleaning_tweets}
 #tokenize tweets to individual words
 #break it down to one word per row to pull out stop words and identify sentiment words 
@@ -91,56 +91,75 @@ words <- tweets %>%
 ```
 
 
+# 2. Compare the ten most common terms in the tweets per day. Do you notice anything interesting?
+
+- identify the top 10 most common words in all tweets for the entire time period
+```{r}
+common_words <- words %>% 
+  count(word) %>% 
+  arrange(desc(n)) %>% 
+  slice_head(n = 10)
+  
+```
+
 
 What is the average sentiment score by tweet? 
 ```{r sentiment_calculations}
-#take average sentiment score by tweet
-tweets_sent <- tweets %>%
-  left_join(
-    words %>%
-      group_by(id) %>%
-      summarize(
-        sent_score = mean(sent_score, na.rm = T)),
-    by = "id")
-
-#redefine neutral/pos/neg based on the average sentiment score 
-neutral <- length(which(tweets_sent$sent_score == 0))
-positive <- length(which(tweets_sent$sent_score > 0))
-negative <- length(which(tweets_sent$sent_score < 0))
-
-Sentiment <- c("Positive","Neutral","Negative")
-Count <- c(positive,neutral,negative)
-
-output <- data.frame(Sentiment,Count)
-output$Sentiment<-factor(output$Sentiment,levels=Sentiment)
+# #take average sentiment score by tweet
+# tweets_sent <- tweets %>%
+#   left_join(
+#     words %>%
+#       group_by(id) %>%
+#       summarize(
+#         sent_score = mean(sent_score, na.rm = T)),
+#     by = "id")
+# 
+# #redefine neutral/pos/neg based on the average sentiment score 
+# neutral <- length(which(tweets_sent$sent_score == 0))
+# positive <- length(which(tweets_sent$sent_score > 0))
+# negative <- length(which(tweets_sent$sent_score < 0))
+# 
+# Sentiment <- c("Positive","Neutral","Negative")
+# Count <- c(positive,neutral,negative)
+# 
+# output <- data.frame(Sentiment,Count)
+# output$Sentiment<-factor(output$Sentiment,levels=Sentiment)
 ```
 
 
 ```{r sentiment_calculations}
-ggplot(output, aes(x=Sentiment,y=Count))+
-  geom_bar(stat = "identity", aes(fill = Sentiment))+
-  scale_fill_manual("legend", values = c("Positive" = "green", "Neutral" = "black", "Negative" = "red"))+
-  ggtitle("Barplot of Sentiment in IPCC tweets")
+# ggplot(output, aes(x=Sentiment,y=Count))+
+#   geom_bar(stat = "identity", aes(fill = Sentiment))+
+#   scale_fill_manual("legend", values = c("Positive" = "green", "Neutral" = "black", "Negative" = "red"))+
+#   ggtitle("Barplot of Sentiment in IPCC tweets")
 ```
+
 How does sentiment change over time? 
 ```{r plot_sentiment_by_day}
-# tally sentiment score per day
-daily_sent <- tweets_sent %>%
-  group_by(date) %>%
-  summarize(sent_score = mean(sent_score, na.rm = T))
-
-daily_sent %>%
-  ggplot( aes(x = date, y = sent_score)) +
-  geom_line() +
-    labs(x = "Date",
-    y = "Avg Sentiment Score",
-    title = "Daily Tweet Sentiment",
-    subtitle = "IPCC Tweets")
-#anticipation before the report drops on April 4
-#then the report is published and people are tweeting about disaster, climate change, and other IPCC things 
+# # tally sentiment score per day
+# daily_sent <- tweets_sent %>%
+#   group_by(date) %>%
+#   summarize(sent_score = mean(sent_score, na.rm = T))
+# 
+# daily_sent %>%
+#   ggplot( aes(x = date, y = sent_score)) +
+#   geom_line() +
+#     labs(x = "Date",
+#     y = "Avg Sentiment Score",
+#     title = "Daily Tweet Sentiment",
+#     subtitle = "IPCC Tweets")
+# #anticipation before the report drops on April 4
+# #then the report is published and people are tweeting about disaster, climate change, and other IPCC things 
 ```
 
-Now let's try a new type of text visualization: the wordcloud.
+
+
+```{r}
+
+```
+
+
+# 3. Adjust the wordcloud in the “wordcloud” chunk by coloring the positive and negative words so they are identifiable.
 
 ```{r wordcloud}
 words %>%
@@ -149,6 +168,7 @@ words %>%
    with(wordcloud(word, n, max.words = 50))
 
 ```
+
 Comparison word cloud 
 ```{r wordcloud_comp}
 
@@ -262,9 +282,9 @@ head(textstat_polarity(tokens, data_dictionary_LSD2015, fun = sent_logit))
 
 
 
-# 2. Compare the ten most common terms in the tweets per day. Do you notice anything interesting?
 
-# 3. Adjust the wordcloud in the “wordcloud” chunk by coloring the positive and negative words so they are identifiable.
+
+
 
 # 4. Let’s say we are interested in the most prominent entities in the Twitter discussion. Which are the top 10 most tagged accounts in the data set. Hint: the “explore_hashtags” chunk is a good starting point.
 
