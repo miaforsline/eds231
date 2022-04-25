@@ -116,6 +116,8 @@ ggplot(data = common_words_count, aes(x = date, y = n, color = word)) +
             text=element_text(size=10))
 ```
 
+After graphing the daily frequency of the top ten most common terms in all the tweets, I noticed that the frequency of all ten words sharply increased on April 4, 2022, which is when the IPCC report was published. This makes sense because the day the report was published was when most people were Tweeting about it. Then the frequencies drop off after April 4 as people become less interested in discussing it on Twitter. 
+
 # 3. Adjust the wordcloud in the “wordcloud” chunk by coloring the positive and negative words so they are identifiable.
 
 Comparison word cloud 
