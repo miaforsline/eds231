@@ -246,6 +246,8 @@ sentiment_df <- textstat_polarity(tokens, data_dictionary_LSD2015, fun = sent_lo
 sentiment_df$polarity <- ifelse(sentiment_df$sentiment <0, -1, 
                                 ifelse(sentiment_df$sentiment > 0, 1, 0))
 
+#polarity score for raw_tweets 
+
 #change polarity to an ordered factor 
 # sentiment_df <- sentiment_df %>% 
 #   mutate(polarity = factor(polarity, levels = c("1", "0", "-1")))

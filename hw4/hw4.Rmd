@@ -31,11 +31,10 @@ librarian::shelf(
 ```
 
 Read in the Tweet data 
-
 ```{r tweet_data}
 raw_tweets <- read.csv("https://raw.githubusercontent.com/MaRo406/EDS_231-text-sentiment/main/dat/IPCC_tweets_April1-10_sample.csv", header=TRUE)
 
-dat <- raw_tweets[,c(5,7)] # Extract Date and Title fields (title = full text)
+dat <- raw_tweets[,c(4,6)] # Extract Date and Title fields (title = full text)
 #dim(dat) = 10% sample of all the tweets that fit the time frame + topic 
 
 tweets <- tibble(text = dat$Title,
@@ -48,17 +47,18 @@ tweets <- tibble(text = dat$Title,
 
 # 1. Think about how to further clean a twitter data set. Let’s assume that the mentions of twitter accounts is not useful to us. Remove them from the text field of the tweets tibble.
 
-Clean up the Tweet data 
-
+Clean up the Tweet data by removing mentions of Twitter accounts 
 ```{r cleaning_tweets}
 #let's clean up the URLs from the tweets
 tweets$text <- gsub("http[^[:space:]]*", "",tweets$text) #pull out https and replace them with nothing
 
 tweets$text <- gsub("@*", "",tweets$text) #pull out @ symbol to remove mentions 
 
-tweets$text <- str_to_lower(tweets$text) #convert text to lowercase 
+tweets$text <- str_to_lower(tweets$text) #convert text to lowercase
+```
 
-#load sentiment lexicons
+Load Bing and NRC sentiment lexicons 
+```{r cleaning_tweets}
 bing_sent <- get_sentiments('bing')
 nrc_sent <- get_sentiments('nrc')
 ```
@@ -102,7 +102,18 @@ common_words_count <- common_words_over_time %>%
 
 ggplot(data = common_words_count, aes(x = date, y = n, color = word)) +
   geom_line() + 
-  theme_classic()
+  theme_classic() + 
+  labs(x = "Date",
+       y = "Word Frequency", 
+       color = "Common Words") + 
+  geom_vline(xintercept = as.numeric(as.Date("2022-04-04")), linetype=4) + 
+  geom_text(aes(x = as.Date("2022-04-04"),
+                label = "IPCC Report Published", 
+                y=700), 
+            colour="black", 
+            angle=0, 
+            hjust = -0.05, 
+            text=element_text(size=10))
 ```
 
 # 3. Adjust the wordcloud in the “wordcloud” chunk by coloring the positive and negative words so they are identifiable.
