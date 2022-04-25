@@ -1,8 +1,10 @@
 ---
-title: "hw4"
+title: "EDS 231 Topic 4: Sentiment Analysis II Assignment"
 author: "Mia Forsline"
-date: '2022-04-23'
-output: html_document
+date: '2022-04-26'
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -46,7 +48,7 @@ tweets <- tibble(text = dat$Title,
 # 1. Think about how to further clean a twitter data set. Let’s assume that the mentions of twitter accounts is not useful to us. Remove them from the text field of the tweets tibble.
 
 Clean up the Tweet data by removing mentions of Twitter accounts 
-```{r cleaning_tweets}
+```{r}
 #let's clean up the URLs from the tweets
 tweets$text <- gsub("http[^[:space:]]*", "",tweets$text) #pull out https and replace them with nothing
 
@@ -56,13 +58,13 @@ tweets$text <- str_to_lower(tweets$text) #convert text to lowercase
 ```
 
 Load Bing and NRC sentiment lexicons 
-```{r cleaning_tweets}
+```{r}
 bing_sent <- get_sentiments('bing')
 nrc_sent <- get_sentiments('nrc')
 ```
 
 Tokenize the Tweets into individual words 
-```{r cleaning_tweets}
+```{r}
 #break it down to one word per row to pull out stop words and identify sentiment words 
 words <- tweets %>%
   select(id, date, text) %>%
@@ -125,7 +127,7 @@ After graphing the daily frequency of the top ten most common terms in all the t
 # 3. Adjust the wordcloud in the “wordcloud” chunk by coloring the positive and negative words so they are identifiable.
 
 Comparison word cloud 
-```{r wordcloud_comp}
+```{r}
 words %>%
 inner_join(get_sentiments("bing")) %>%
 count(word, sentiment, sort = TRUE) %>%
@@ -136,9 +138,8 @@ comparison.cloud(colors = c("red", "blue"),
 
 # 4. Let’s say we are interested in the most prominent entities in the Twitter discussion. Which are the top 10 most tagged accounts in the data set. Hint: the “explore_hashtags” chunk is a good starting point.
 
-- use quanteda to tokenize and clean Tweet words 
-
-```{r create_corpus}
+Use `quanteda` to tokenize and clean Tweet words 
+```{r}
 corpus <- corpus(dat$Title) #enter quanteda
 
 tokens <- tokens(corpus) #tokenize the text so each doc (page, in this case) is a list of tokens (words)
@@ -155,7 +156,7 @@ tokens <- tokens_tolower(tokens)
 ```
 
 Mentions in tweets 
-```{r explore_hashtags}
+```{r}
 #tokenize but keep only a particular pattern (in this case, the @ symbol)
 mention_tweets <- tokens(corpus, remove_punct = TRUE) %>% 
                   tokens_keep(pattern = "@*") #@ followed by any other string 
@@ -177,6 +178,7 @@ tstat_freq %>% as.data.frame() %>%
 
 # 5. The Twitter data download comes with a variable called “Sentiment” that must be calculated by Brandwatch. Use your own method to assign each tweet a polarity score (Positive, Negative, Neutral) and compare your classification to Brandwatch’s (hint: you’ll need to revisit the “raw_tweets” data frame).
 
+First, use the Brandwatch classifications to determine Tweet polarity scores 
 ```{r}
 raw_tweets <- read.csv("https://raw.githubusercontent.com/MaRo406/EDS_231-text-sentiment/main/dat/IPCC_tweets_April1-10_sample.csv", header=TRUE)
 
@@ -187,6 +189,7 @@ tweets <- tibble(text = dat$Title,
                  date = as.Date(dat$Date,'%m/%d/%y'),
                  sentiment = dat$Sentiment)
 
+#assign 1,0,-1 to Tweets based on pos/neutral/neg Sentiment categories 
 tweets <- tweets %>% 
   as.data.frame() %>% 
   mutate(sentiment = as.factor(sentiment)) %>% 
@@ -197,25 +200,76 @@ tweets <- tweets %>%
         )
 
 #count how many pos/neutral/neg tweets were calculated by Bandwatch 
-bandwatch_polarity_freq <- tweets %>% 
+brandwatch_polarity_freq <- tweets %>% 
+  as.data.frame() %>% 
   count(polarity) %>% 
-  arrange(desc(n))
-
+  arrange(desc(n)) %>% 
+  mutate(polarity = factor(polarity, levels = c("1", "0", "-1")))
 ```
 
-
+Second, calculate average sentiment scores for each Tweet 
 ```{r}
+raw_tweets <- read.csv("https://raw.githubusercontent.com/MaRo406/EDS_231-text-sentiment/main/dat/IPCC_tweets_April1-10_sample.csv", header=TRUE)
+
+dat <- raw_tweets[,c(4,6, 10)] 
+
+tweets <- tibble(text = dat$Title,
+                 id = seq(1:length(dat$Title)),
+                 date = as.Date(dat$Date,'%m/%d/%y'),
+                 sentiment = dat$Sentiment)
+
 #list of characters
 mytext <- get_sentences(tweets$text)
 
 #sentiments from the text 
-sent <- sentiment(mytext) %>% 
+mysent <- sentiment(mytext) %>% 
   group_by(element_id) %>% 
   summarise(avg_sentiment = mean(sentiment))
-
-#create dataframe of sentiments of each sentence 
-sentiment_df <- inner_join(raw_tweets, sent, by = "element_id")
-
-sentiment <- sentiment_by(sentiment_df$headline)
 ```
 
+Plot to examine the distribution of average sentiment to best understand how to assign polarity scores 
+```{r}
+ggplot(data = mysent, aes(x = avg_sentiment)) + 
+  geom_histogram() + 
+  theme_classic() + 
+  labs(x = "Average Sentiment Score", 
+       y = "Frequency")
+```
+
+Assign polarity scores 
+```{r}
+#positive: [0.33, 1)
+#neutral: [-0.33, 0.33]
+#negative: (-1, -0.33]
+mysent$polarity <- ifelse(mysent$avg_sentiment < 0, -1, 
+                        ifelse(mysent$avg_sentiment > 0, 1, 0))
+
+#change polarity to an ordered factor 
+mysent <- mysent %>% 
+  mutate(polarity = factor(polarity, levels = c("1", "0", "-1")))
+
+#count how many pos/neutral/neg tweets there are  
+my_freq <- mysent %>% 
+  count(polarity) %>% 
+  arrange(desc(n))
+```
+
+Finally, compare the polarity scores I calcualted against Brandwatch's polarity scores 
+```{r brandwatch polarity graph}
+ggplot(data = brandwatch_polarity_freq, aes(x = polarity, y = n)) + 
+  geom_col() + 
+  theme_classic() + 
+  labs(x = "Polarity Score", 
+       y = "Frequency", 
+       title = "Brandwatch Scores")
+```
+```{r my polarity graph}
+ggplot(data = my_freq, aes(x = polarity, y = n)) + 
+  geom_col() + 
+  theme_classic() + 
+  labs(x = "Polarity Score", 
+       y = "Frequency", 
+       title = "My Calculated Polarity Scores")
+```
+
+The way I classified polarity scores resulted in much more positive and negative words and few neutral words. In contrast, Brandwatch's classification technique resulted in many neutral words compared to positive or negative words. 
