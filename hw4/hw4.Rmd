@@ -180,13 +180,31 @@ tstat_freq %>% as.data.frame() %>%
 ```{r}
 raw_tweets <- read.csv("https://raw.githubusercontent.com/MaRo406/EDS_231-text-sentiment/main/dat/IPCC_tweets_April1-10_sample.csv", header=TRUE)
 
-dat <- raw_tweets[,c(5,7)] # Extract Date and Title fields (title = full text)
-#dim(dat) = 10% sample of all the tweets that fit the time frame + topic 
+dat <- raw_tweets[,c(4,6, 10)] 
 
 tweets <- tibble(text = dat$Title,
-                  id = seq(1:length(dat$Title)),
-                 date = as.Date(dat$Date,'%m/%d/%y'))
+                 id = seq(1:length(dat$Title)),
+                 date = as.Date(dat$Date,'%m/%d/%y'),
+                 sentiment = dat$Sentiment)
 
+tweets <- tweets %>% 
+  as.data.frame() %>% 
+  mutate(sentiment = as.factor(sentiment)) %>% 
+  mutate(
+    polarity = ifelse(sentiment == "positive", 1, 
+                      ifelse(sentiment == "neutral", 0, -1)
+                      )
+        )
+
+#count how many pos/neutral/neg tweets were calculated by Bandwatch 
+bandwatch_polarity_freq <- tweets %>% 
+  count(polarity) %>% 
+  arrange(desc(n))
+
+```
+
+
+```{r}
 #list of characters
 mytext <- get_sentences(tweets$text)
 
