@@ -1,0 +1,137 @@
+---
+title: "topic5_hw"
+author: "Mia Forsline"
+date: '2022-04-30'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE, 
+                      warning = FALSE)
+
+#install packages if necessary, then load libraries
+if (!require(librarian)){
+  install.packages("librarian")
+  library(librarian)
+}
+
+librarian::shelf(
+  forcats,
+  ggraph,
+  here,
+  igraph,
+  kableExtra,
+  lubridate,
+  pdftools,
+  quanteda,
+  quanteda.sentiment,
+  quanteda.textplots,
+  quanteda.textstats,
+  readr,
+  readtext,
+  reshape2,
+  sentimentr,
+  stringr,
+  tidyr,
+  tidytext,
+  tidyverse,
+  widyr,
+  wordcloud
+  )
+```
+
+# Import EPA environmental justice sata
+
+```{r pdf_import}
+files <- list.files(path = here::here("data"),
+                    pattern = "pdf$", full.names = TRUE)
+
+files <- str_subset(files, pattern="EPA")
+
+ej_reports <- lapply(files, pdf_text)
+
+ej_pdf <- readtext(file = files,
+                   docvarsfrom = "filenames",
+                   docvarnames = c("type","year"),
+                   sep = "_")
+
+#creating an initial corpus containing our data
+epa_corp <- corpus(x = ej_pdf, text_field = "text" )
+summary(epa_corp)
+
+#I'm adding some additional, context-specific stop words to stop word lexicon
+more_stops <-c("2015",
+               "2016", 
+               "2017", 
+               "2018", 
+               "2019", 
+               "2020", 
+               "www.epa.gov", 
+               "https")
+add_stops<- tibble(word = c(stop_words$word, more_stops)) 
+stop_vec <- as_vector(add_stops)
+
+```
+
+Now we'll create some different data objects that will set us up for the subsequent analyses
+
+```{r tidy}
+
+#convert to tidy format and apply my stop words
+raw_text <- tidy(epa_corp)
+
+#Distribution of most frequent words across documents
+raw_words <- raw_text %>%
+  mutate(year = as.factor(year)) %>%
+  unnest_tokens(word, text) %>%
+  anti_join(add_stops, by = 'word') %>%
+  count(year, word, sort = TRUE)
+
+#number of total words by document  
+total_words <- raw_words %>% 
+  group_by(year) %>% 
+  summarize(total = sum(n))
+
+report_words <- left_join(raw_words, total_words)
+ 
+#paragraph tokens 
+par_tokens <- unnest_tokens(raw_text, output = paragraphs, input = text, token = "paragraphs")
+
+#give each paragraph an id number 
+par_tokens <- par_tokens %>%
+ mutate(par_id = 1:n())
+
+#individual words 
+par_words <- unnest_tokens(par_tokens, output = word, input = paragraphs, token = "words")
+
+```
+
+Let's see which words tend to occur close together in the text. This is a way to leverage word relationships (in this case, co-occurence in a single paragraph) to give us some understanding of the things discussed in the documents.
+
+```{r co-occur_paragraphs}
+word_pairs <- par_words %>% 
+  pairwise_count(word, par_id, sort = TRUE, upper = FALSE) %>%
+  anti_join(add_stops, by = c("item1" = "word")) %>%
+  anti_join(add_stops, by = c("item2" = "word"))
+
+word_pairs %>%
+  filter(n >= 70) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "dodgerblue") +
+  geom_node_point(size = 5) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.2, "lines")) +
+  theme_void()
+```
+
+# Assignment
+
+# 1. What are the most frequent trigrams in the dataset? How does this compare to the most frequent bigrams? Which n-gram seems more informative here, and why?
+
+# 2. Choose a new focal term to replace “justice” and recreate the correlation table and network (see corr_paragraphs and corr_network chunks). Explore some of the plotting parameters in the cor_network chunk to see if you can improve the clarity or amount of information your plot conveys. Make sure to use a different color for the ties!
+
+# 3. Write a function that allows you to conduct a keyness analysis to compare two individual EPA reports (hint: that means target and reference need to both be individual reports). Run the function on 3 pairs of reports, generating 3 keyness plots.
+
+# 4. Select a word or multi-word term of interest and identify words related to it using windowing and keyness comparison. To do this you will create to objects: one containing all words occurring within a 10-word window of your term of interest, and the second object containing all other words. Then run a keyness comparison on these objects. Which one is the target, and which the reference? Hint
