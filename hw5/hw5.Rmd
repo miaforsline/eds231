@@ -1,7 +1,7 @@
 ---
-title: "topic5_hw"
+title: "Topic 5: Word Relationships"
 author: "Mia Forsline"
-date: '2022-04-30'
+date: '2022-05-03'
 output: html_document
 ---
 
@@ -41,28 +41,34 @@ librarian::shelf(
   )
 ```
 
-# Import EPA environmental justice data
+Import EPA environmental justice data
 
 ```{r}
+#character of full file paths for each PDF in the data folder 
 files <- list.files(path = here::here("data"),
                     pattern = "pdf$", full.names = TRUE)
 
+#subset to include only EPA report PDFs 
 files <- str_subset(files, pattern="EPA")
 
+#list
 ej_reports <- lapply(files, pdf_text)
 
+#readtext/df of all 6 PDf reports 
 ej_pdf <- readtext(file = files,
                    docvarsfrom = "filenames",
                    docvarnames = c("type","year"),
                    sep = "_")
 
-#creating an initial corpus containing our data
+#creating an initial corpus containing the data
 epa_corp <- corpus(x = ej_pdf, text_field = "text" )
+
+#check that the corpus contains all 6 reports 
 summary(epa_corp)
 ```
 
-```{r pdf_import}
-#I'm adding some additional, context-specific stop words to stop word lexicon
+Add additional, context-specific stop words to stop word lexicon
+```{r}
 more_stops <-c("2015",
                "2016", 
                "2017", 
@@ -78,19 +84,16 @@ stop_vec <- as_vector(add_stops)
 Tokenize the data into single words 
 ```{r}
 tokens <- tokens(epa_corp, remove_punct = TRUE)
-toks1<- tokens_select(tokens, min_nchar = 3)
-toks1 <- tokens_tolower(toks1)
-toks1 <- tokens_remove(toks1, pattern = (stop_vec))
-dfm <- dfm(toks1)
 
-#first the basic frequency stat
-tstat_freq <- textstat_frequency(dfm, n = 5, groups = year)
-head(tstat_freq, 10)
+toks1<- tokens_select(tokens, min_nchar = 3)
+toks1 <- tokens_tolower(toks1) #lowercase 
+toks1 <- tokens_remove(toks1, pattern = (stop_vec)) #remove stop words 
+dfm <- dfm(toks1) #create a data frequency matrix 
 ```
 
 # 1. What are the most frequent trigrams in the dataset? How does this compare to the most frequent bigrams? Which n-gram seems more informative here, and why?
 
-
+Calculate the 10 most frequent bigrams 
 ```{r bigrams}
 toks2 <- tokens_ngrams(toks1, n=2)
 dfm2 <- dfm(toks2)
@@ -99,8 +102,20 @@ freq_words2 <- textstat_frequency(dfm2, n=20)
 freq_words2$token <- rep("bigram", 20)
 
 tstat_freq2 <- textstat_frequency(dfm2, n = 5, groups = year)
-head(tstat_freq2, 10)
+
+#display results in a table 
+tstat_freq2 %>% 
+  rename(Bigram = feature,
+         "Report Year" = group,
+         Frequency = frequency,
+         Rank = rank,
+         "Document Frequency" = docfreq) %>% 
+  kbl(n = 10) %>% 
+  kable_styling()
+  
 ```
+
+Calculate the most frequent trigrams 
 ```{r trigrams}
 toks3 <- tokens_ngrams(toks1, n=3)
 dfm3 <- dfm(toks3)
@@ -109,7 +124,16 @@ freq_words3 <- textstat_frequency(dfm3, n=20)
 freq_words3$token <- rep("trigram", 20)
 
 tstat_freq3 <- textstat_frequency(dfm3, n = 5, groups = year)
-head(tstat_freq3, 10)
+
+#display results in a table 
+tstat_freq3 %>% 
+  rename(Trigram = feature,
+         "Report Year" = group,
+         Frequency = frequency,
+         Rank = rank,
+         "Document Frequency" = docfreq) %>% 
+  kbl(n = 10) %>% 
+  kable_styling()
 ```
 The third word in the trigrams does not add a lot of value to the n-gram. 
 
