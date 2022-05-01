@@ -41,9 +41,9 @@ librarian::shelf(
   )
 ```
 
-# Import EPA environmental justice sata
+# Import EPA environmental justice data
 
-```{r pdf_import}
+```{r}
 files <- list.files(path = here::here("data"),
                     pattern = "pdf$", full.names = TRUE)
 
@@ -59,7 +59,9 @@ ej_pdf <- readtext(file = files,
 #creating an initial corpus containing our data
 epa_corp <- corpus(x = ej_pdf, text_field = "text" )
 summary(epa_corp)
+```
 
+```{r pdf_import}
 #I'm adding some additional, context-specific stop words to stop word lexicon
 more_stops <-c("2015",
                "2016", 
@@ -69,15 +71,53 @@ more_stops <-c("2015",
                "2020", 
                "www.epa.gov", 
                "https")
-add_stops<- tibble(word = c(stop_words$word, more_stops)) 
+add_stops <- tibble(word = c(stop_words$word, more_stops)) 
 stop_vec <- as_vector(add_stops)
-
 ```
+
+Tokenize the data into single words 
+```{r}
+tokens <- tokens(epa_corp, remove_punct = TRUE)
+toks1<- tokens_select(tokens, min_nchar = 3)
+toks1 <- tokens_tolower(toks1)
+toks1 <- tokens_remove(toks1, pattern = (stop_vec))
+dfm <- dfm(toks1)
+
+#first the basic frequency stat
+tstat_freq <- textstat_frequency(dfm, n = 5, groups = year)
+head(tstat_freq, 10)
+```
+
+# 1. What are the most frequent trigrams in the dataset? How does this compare to the most frequent bigrams? Which n-gram seems more informative here, and why?
+
+
+```{r bigrams}
+toks2 <- tokens_ngrams(toks1, n=2)
+dfm2 <- dfm(toks2)
+dfm2 <- dfm_remove(dfm2, pattern = c(stop_vec))
+freq_words2 <- textstat_frequency(dfm2, n=20)
+freq_words2$token <- rep("bigram", 20)
+
+tstat_freq2 <- textstat_frequency(dfm2, n = 5, groups = year)
+head(tstat_freq2, 10)
+```
+```{r trigrams}
+toks3 <- tokens_ngrams(toks1, n=3)
+dfm3 <- dfm(toks3)
+dfm3 <- dfm_remove(dfm3, pattern = c(stop_vec))
+freq_words3 <- textstat_frequency(dfm3, n=20)
+freq_words3$token <- rep("trigram", 20)
+
+tstat_freq3 <- textstat_frequency(dfm3, n = 5, groups = year)
+head(tstat_freq3, 10)
+```
+The third word in the trigrams does not add a lot of value to the n-gram. 
+
+# 2. Choose a new focal term to replace “justice” and recreate the correlation table and network (see corr_paragraphs and corr_network chunks). Explore some of the plotting parameters in the cor_network chunk to see if you can improve the clarity or amount of information your plot conveys. Make sure to use a different color for the ties!
 
 Now we'll create some different data objects that will set us up for the subsequent analyses
 
 ```{r tidy}
-
 #convert to tidy format and apply my stop words
 raw_text <- tidy(epa_corp)
 
@@ -126,12 +166,98 @@ word_pairs %>%
   theme_void()
 ```
 
-# Assignment
+```{r corr_paragraphs}
+#calculate correlation coefficients between words 
+word_cors <- par_words %>% 
+  add_count(par_id) %>% 
+  filter(n >= 50) %>% 
+  select(-n) %>%
+  pairwise_cor(word, par_id, sort = TRUE)
 
-# 1. What are the most frequent trigrams in the dataset? How does this compare to the most frequent bigrams? Which n-gram seems more informative here, and why?
+#search for words correlated with "justice" 
+urban_cors <- word_cors %>% 
+  filter(item1 == "urban")
 
-# 2. Choose a new focal term to replace “justice” and recreate the correlation table and network (see corr_paragraphs and corr_network chunks). Explore some of the plotting parameters in the cor_network chunk to see if you can improve the clarity or amount of information your plot conveys. Make sure to use a different color for the ties!
+#graph correlation coefficients for words correlated with 4 key terms 
+  word_cors %>%
+  filter(item1 %in% c("waters", 
+                      "flooding", 
+                      "housing", 
+                      "urban"))%>%
+  group_by(item1) %>%
+  top_n(6) %>%
+  ungroup() %>%
+  mutate(item1 = as.factor(item1),
+  name = reorder_within(item2, correlation, item1)) %>%
+  ggplot(aes(y = name, x = correlation, fill = item1)) + 
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~item1, ncol = 2, scales = "free")+
+  scale_y_reordered() +
+  labs(y = NULL,
+         x = NULL,
+         title = "Correlations with key words",
+         subtitle = "EPA EJ Reports")
+  
+#let's zoom in on just one of our key terms
+urban_cors <- word_cors %>% 
+  filter(item1 == "urban") %>%
+  mutate(n = 1:n())
+```
+
+```{r corr_network}
+urban_cors  %>%
+  filter(n <= 50) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation, edge_width = correlation), edge_colour = "cyan4") +
+  geom_node_point(size = 5) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.2, "lines")) +
+  theme_void()
+```
 
 # 3. Write a function that allows you to conduct a keyness analysis to compare two individual EPA reports (hint: that means target and reference need to both be individual reports). Run the function on 3 pairs of reports, generating 3 keyness plots.
 
+```{r}
+keyness <- textstat_keyness(dfm, target = 1) #target = 1 --> first document in the list, so in this case 2015
+#target = 2 would use 2016 as the target document
+textplot_keyness(keyness)
+
+#chi-square values for each word 
+#in 2015, climate has the highest chi-square value, so climate occurred the most "more than expected" given the baseline frequency 
+#words in blue = occured more than expected
+#words in grey = occurred less than expected 
+#reference = includes all reports except 2015 
+```
+
+```{r}
+
+
+keyness_function <- function(report_number) {
+  
+  for (i in (1:(length(epa_corp) -1))) {
+    report_test <- epa_corp[i: (i+1)]
+    print(report_test)
+    tokens_test <- tokens(report_test, remove_punct = TRUE) #list split word by word
+    tokens_test <- tokens_select(tokens_test, min_nchar = 3)
+    tokens_test <- tokens_tolower(tokens_test)
+    tokens_test <- tokens_remove(tokens_test, pattern = (stop_vec))
+    dfm_test <- dfm(tokens_test) #document feature matrix
+
+    keyness <- textstat_keyness(dfm_test, target = 1)
+    print(textplot_keyness(keyness))
+    
+  }
+  
+}
+
+keyness_function(report_number = 1)
+
+
+
+```
+
+
+
 # 4. Select a word or multi-word term of interest and identify words related to it using windowing and keyness comparison. To do this you will create to objects: one containing all words occurring within a 10-word window of your term of interest, and the second object containing all other words. Then run a keyness comparison on these objects. Which one is the target, and which the reference? Hint
+

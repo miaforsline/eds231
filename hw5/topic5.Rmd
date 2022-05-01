@@ -169,8 +169,8 @@ justice_cors  %>%
 
 Now let's look at the tf-idf (term-frequency, individual document frequency) term we talked about. Remember, this statistic goes beyond simple frequency calculations within a document to control for overall commonality across documents
 
-- Which terms are uniquely common to a document ? (Ex. "fy2017" is unique to the 2018 document)
-- which terms are most unique and frequent in each document ? 
+-   Which terms are uniquely common to a document ? (Ex. "fy2017" is unique to the 2018 document)
+-   which terms are most unique and frequent in each document ?
 
 ```{r}
 report_tf_idf <- report_words %>%
@@ -190,7 +190,7 @@ report_tf_idf %>%
   labs(x = "tf-idf", y = NULL)
 ```
 
-# Quanteda 
+# Quanteda
 
 So that gives an idea which words are frequent and unique to certain documents.
 
@@ -208,7 +208,9 @@ tstat_freq <- textstat_frequency(dfm, n = 5, groups = year)
 head(tstat_freq, 10) 
 
 ```
-# tokens that are more than a single word (unigram) 
+
+# tokens that are more than a single word (unigram)
+
 Another useful word relationship concept is that of the n-gram, which essentially means tokenizing at the multi-word level
 
 ```{r convert_dfm}
@@ -234,7 +236,8 @@ textplot_keyness(keyness)
 #words in grey = occurred less than expected 
 #reference = includes all reports except 2015 
 ```
-# Hierarchical clustering to assess document similarity 
+
+# Hierarchical clustering to assess document similarity
 
 And finally, we can run a hierarchical clustering algorithm to assess document similarity. This tends to be more informative when you are dealing with a larger number of documents, but we'll add it here for future reference.
 
@@ -244,7 +247,7 @@ clust <- hclust(dist)
 plot(clust, xlab = "Distance", ylab = NULL)
 ```
 
-# Assignment 5 
+# Assignment 5
 
 1.  What are the most frequent trigrams in the dataset? How does this compare to the most frequent bigrams? Which n-gram seems more informative here, and why?
 
