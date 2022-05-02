@@ -239,45 +239,38 @@ urban_cors  %>%
 
 # 3. Write a function that allows you to conduct a keyness analysis to compare two individual EPA reports (hint: that means target and reference need to both be individual reports). Run the function on 3 pairs of reports, generating 3 keyness plots.
 
+Create the function
 ```{r}
-keyness <- textstat_keyness(dfm, target = 1) #target = 1 --> first document in the list, so in this case 2015
-#target = 2 would use 2016 as the target document
-textplot_keyness(keyness)
-
-#chi-square values for each word 
-#in 2015, climate has the highest chi-square value, so climate occurred the most "more than expected" given the baseline frequency 
-#words in blue = occured more than expected
-#words in grey = occurred less than expected 
-#reference = includes all reports except 2015 
-```
-
-```{r}
-
-
 keyness_function <- function(report_number) {
   
-  for (i in (1:(length(epa_corp) -1))) {
-    report_test <- epa_corp[i: (i+1)]
-    print(report_test)
-    tokens_test <- tokens(report_test, remove_punct = TRUE) #list split word by word
+  for (i in (1:(length(epa_corp) -1))) { #1:5 to make sure the last list doesn't throw an error
+    report_test <- epa_corp[i: (i+1)] #create a list of 2 reports 
+    print(report_test) #print each list to check that all pairs of reports are accounted for 
+    
+    #tokenize each list 
+    tokens_test <- tokens(report_test, remove_punct = TRUE) 
     tokens_test <- tokens_select(tokens_test, min_nchar = 3)
     tokens_test <- tokens_tolower(tokens_test)
     tokens_test <- tokens_remove(tokens_test, pattern = (stop_vec))
-    dfm_test <- dfm(tokens_test) #document feature matrix
-
+    
+    #create a document feature matrix 
+    dfm_test <- dfm(tokens_test) 
+    
+    #use the textstat_keyness function where the target is the first report in the list, so the second report is the reference 
     keyness <- textstat_keyness(dfm_test, target = 1)
+    
+    #print the results 
     print(textplot_keyness(keyness))
     
   }
   
 }
-
-keyness_function(report_number = 1)
-
-
-
 ```
 
+Test the function 
+```{r}
+keyness_function(report_number = 1)
+```
 
 
 # 4. Select a word or multi-word term of interest and identify words related to it using windowing and keyness comparison. To do this you will create to objects: one containing all words occurring within a 10-word window of your term of interest, and the second object containing all other words. Then run a keyness comparison on these objects. Which one is the target, and which the reference? Hint
