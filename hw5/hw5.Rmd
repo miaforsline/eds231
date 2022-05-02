@@ -293,6 +293,7 @@ toks1 <- tokens_remove(toks1, pattern = (stop_vec)) #remove stop words
 ```
 
 Select 2 token objects for words (1) inside vs (2) outside a 10-word window of the keyword "health
+
 ```{r}
 #identify keyword 
 keyword <- c("health")
@@ -313,7 +314,7 @@ toks_outside <- tokens_remove(toks1,
 dfmat_outside <- dfm(toks_outside)
 ```
 
-
+Display top 10 words most related to "health" 
 ```{r}
 tstat_key_inside <- textstat_keyness(rbind(dfmat_inside, dfmat_outside), 
                                      target = seq_len(ndoc(dfmat_inside)))
