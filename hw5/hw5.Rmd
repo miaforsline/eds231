@@ -66,7 +66,7 @@ ej_pdf <- readtext(file = files,
 epa_corp <- corpus(x = ej_pdf, text_field = "text" )
 
 #check that the corpus contains all 6 reports 
-summary(epa_corp)
+#summary(epa_corp)
 ```
 
 Add additional, context-specific stop words to stop word lexicon
@@ -113,7 +113,8 @@ tstat_freq2[1:10] %>%
          Rank = rank,
          "Document Frequency" = docfreq) %>% 
   kbl() %>% 
-  kable_styling(bootstrap_options = c("striped", "hover"))
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                latex_options = "HOLD_position") #hold the table position when knitting 
   
 ```
 \newpage 
@@ -136,7 +137,8 @@ tstat_freq3[1:10] %>%
          Rank = rank,
          "Document Frequency" = docfreq) %>% 
   kbl() %>% 
-  kable_styling(bootstrap_options = c("striped", "hover"))
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                latex_options = "HOLD_position") 
 ```
 After comparing the 10 most common bigrams and trigrams, the additional third word does not seem to add much more meaning to the results. For example, "environmental_justice" is just as informative as "national_environmental_justice." The third word can even be more confusing. For instance "page_fiscal_annual" is an unclear trigram. Thus, the bigrams seem more informative to me. 
 
@@ -245,7 +247,8 @@ keyness_function <- function(report_number) {
   
   for (i in (1:(length(epa_corp) -1))) { #1:5 to make sure the last list doesn't throw an error
     report_test <- epa_corp[i: (i+1)] #create a list of 2 reports 
-    print(report_test) #print each list to check that all pairs of reports are accounted for 
+    #print each list to check that all pairs of reports are accounted for 
+    #print(report_test) 
     
     #tokenize each list 
     tokens_test <- tokens(report_test, remove_punct = TRUE) 
@@ -318,7 +321,8 @@ tstat_key_inside[1:10] %>%
   rename("Related Words" = feature,
          "Chi Squared" = chi2) %>% 
   kbl() %>% 
-  kable_styling(bootstrap_options = c("striped", "hover"))
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                latex_options = "HOLD_position")
 ```
 
 
