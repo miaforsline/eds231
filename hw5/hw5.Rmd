@@ -1,8 +1,10 @@
 ---
-title: "Topic 5: Word Relationships"
+title: 'Topic 5: Word Relationships'
 author: "Mia Forsline"
 date: '2022-05-03'
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -103,17 +105,18 @@ freq_words2$token <- rep("bigram", 20)
 
 tstat_freq2 <- textstat_frequency(dfm2, n = 5, groups = year)
 
-#display results in a table 
-tstat_freq2 %>% 
+#display the top 10 rows in a table 
+tstat_freq2[1:10] %>% 
   rename(Bigram = feature,
          "Report Year" = group,
          Frequency = frequency,
          Rank = rank,
          "Document Frequency" = docfreq) %>% 
-  kbl(n = 10) %>% 
+  kbl() %>% 
   kable_styling()
   
 ```
+\newpage 
 
 Calculate the most frequent trigrams 
 ```{r trigrams}
@@ -125,53 +128,57 @@ freq_words3$token <- rep("trigram", 20)
 
 tstat_freq3 <- textstat_frequency(dfm3, n = 5, groups = year)
 
-#display results in a table 
-tstat_freq3 %>% 
+#display the top 10 rows in a table 
+tstat_freq3[1:10] %>% 
   rename(Trigram = feature,
          "Report Year" = group,
          Frequency = frequency,
          Rank = rank,
          "Document Frequency" = docfreq) %>% 
-  kbl(n = 10) %>% 
+  kbl() %>% 
   kable_styling()
 ```
-The third word in the trigrams does not add a lot of value to the n-gram. 
+After comparing the 10 most common bigrams and trigrams, the additional third word does not seem to add much more meaning to the results. For example, "environmental_justice" is just as informative as "national_environmental_justice." The third word can even be more confusing. For instance "page_fiscal_annual" is an unclear trigram. Thus, the bigrams seem more informative to me. 
 
 # 2. Choose a new focal term to replace “justice” and recreate the correlation table and network (see corr_paragraphs and corr_network chunks). Explore some of the plotting parameters in the cor_network chunk to see if you can improve the clarity or amount of information your plot conveys. Make sure to use a different color for the ties!
 
-Now we'll create some different data objects that will set us up for the subsequent analyses
 
 ```{r tidy}
-#convert to tidy format and apply my stop words
+#convert to tidy format
 raw_text <- tidy(epa_corp)
 
-#Distribution of most frequent words across documents
-raw_words <- raw_text %>%
-  mutate(year = as.factor(year)) %>%
-  unnest_tokens(word, text) %>%
-  anti_join(add_stops, by = 'word') %>%
-  count(year, word, sort = TRUE)
+# #count most frequent words across all reports 
+# #tbl_df, tbl, data.frame 
+# raw_words <- raw_text %>%
+#   mutate(year = as.factor(year)) %>%
+#   unnest_tokens(word, text) %>%
+#   anti_join(add_stops, by = 'word') %>% #remove stop words 
+#   count(year, word, sort = TRUE)
+# 
+# #count number of total words per report  
+# total_words <- raw_words %>% 
+#   group_by(year) %>% 
+#   summarize(total = sum(n))
+# 
+# #dataframe with the frequncy of each word + the total number of words per report
+# report_words <- left_join(raw_words, total_words)
+```
 
-#number of total words by document  
-total_words <- raw_words %>% 
-  group_by(year) %>% 
-  summarize(total = sum(n))
 
-report_words <- left_join(raw_words, total_words)
- 
-#paragraph tokens 
+```{r tidy}
+#paragraph tokens (tibble)
 par_tokens <- unnest_tokens(raw_text, output = paragraphs, input = text, token = "paragraphs")
 
 #give each paragraph an id number 
 par_tokens <- par_tokens %>%
  mutate(par_id = 1:n())
 
-#individual words 
+#extract individual words from each paragraph 
 par_words <- unnest_tokens(par_tokens, output = word, input = paragraphs, token = "words")
 
 ```
 
-Let's see which words tend to occur close together in the text. This is a way to leverage word relationships (in this case, co-occurence in a single paragraph) to give us some understanding of the things discussed in the documents.
+Identify which words tend to occur closely together in the text 
 
 ```{r co-occur_paragraphs}
 word_pairs <- par_words %>% 
@@ -179,15 +186,15 @@ word_pairs <- par_words %>%
   anti_join(add_stops, by = c("item1" = "word")) %>%
   anti_join(add_stops, by = c("item2" = "word"))
 
-word_pairs %>%
-  filter(n >= 70) %>%
-  graph_from_data_frame() %>%
-  ggraph(layout = "fr") +
-  geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "dodgerblue") +
-  geom_node_point(size = 5) +
-  geom_node_text(aes(label = name), repel = TRUE, 
-                 point.padding = unit(0.2, "lines")) +
-  theme_void()
+# word_pairs %>%
+#   filter(n >= 70) %>%
+#   graph_from_data_frame() %>%
+#   ggraph(layout = "fr") +
+#   geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "dodgerblue") +
+#   geom_node_point(size = 5) +
+#   geom_node_text(aes(label = name), repel = TRUE, 
+#                  point.padding = unit(0.2, "lines")) +
+#   theme_void()
 ```
 
 ```{r corr_paragraphs}
@@ -198,16 +205,16 @@ word_cors <- par_words %>%
   select(-n) %>%
   pairwise_cor(word, par_id, sort = TRUE)
 
-#search for words correlated with "justice" 
+#search for words correlated with "urban" (tibble)
 urban_cors <- word_cors %>% 
   filter(item1 == "urban")
 
-#graph correlation coefficients for words correlated with 4 key terms 
-  word_cors %>%
+#graph correlation coefficients for words correlated with 4 key terms based on the correlation coefficients calculated in urban_cors 
+word_cors %>%
   filter(item1 %in% c("waters", 
                       "flooding", 
                       "housing", 
-                      "urban"))%>%
+                      "urban")) %>%
   group_by(item1) %>%
   top_n(6) %>%
   ungroup() %>%
@@ -221,14 +228,14 @@ urban_cors <- word_cors %>%
          x = NULL,
          title = "Correlations with key words",
          subtitle = "EPA EJ Reports")
-  
-#let's zoom in on just one of our key terms
+```
+
+
+```{r}
+#zoom in on just one of our key terms
 urban_cors <- word_cors %>% 
   filter(item1 == "urban") %>%
   mutate(n = 1:n())
-```
-
-```{r corr_network}
 urban_cors  %>%
   filter(n <= 50) %>%
   graph_from_data_frame() %>%
