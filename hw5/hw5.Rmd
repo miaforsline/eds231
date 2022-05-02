@@ -113,7 +113,7 @@ tstat_freq2[1:10] %>%
          Rank = rank,
          "Document Frequency" = docfreq) %>% 
   kbl() %>% 
-  kable_styling()
+  kable_styling(bootstrap_options = c("striped", "hover"))
   
 ```
 \newpage 
@@ -136,7 +136,7 @@ tstat_freq3[1:10] %>%
          Rank = rank,
          "Document Frequency" = docfreq) %>% 
   kbl() %>% 
-  kable_styling()
+  kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 After comparing the 10 most common bigrams and trigrams, the additional third word does not seem to add much more meaning to the results. For example, "environmental_justice" is just as informative as "national_environmental_justice." The third word can even be more confusing. For instance "page_fiscal_annual" is an unclear trigram. Thus, the bigrams seem more informative to me. 
 
@@ -273,5 +273,52 @@ keyness_function(report_number = 1)
 ```
 
 
-# 4. Select a word or multi-word term of interest and identify words related to it using windowing and keyness comparison. To do this you will create to objects: one containing all words occurring within a 10-word window of your term of interest, and the second object containing all other words. Then run a keyness comparison on these objects. Which one is the target, and which the reference? Hint
+# 4. Select a word or multi-word term of interest and identify words related to it using windowing and keyness comparison. To do this you will create to objects: one containing all words occurring within a 10-word window of your term of interest, and the second object containing all other words. Then run a keyness comparison on these objects. Which one is the target, and which the reference? [Hint](https://tutorials.quanteda.io/advanced-operations/target-word-collocations/)
+
+Start with the initial corpus and tokenized words 
+
+```{r}
+#creating an initial corpus containing the data
+epa_corp <- corpus(x = ej_pdf, text_field = "text" )
+
+tokens <- tokens(epa_corp, remove_punct = TRUE)
+
+toks1<- tokens_select(tokens, min_nchar = 3)
+toks1 <- tokens_tolower(toks1) #lowercase 
+toks1 <- tokens_remove(toks1, pattern = (stop_vec)) #remove stop words 
+#dfm <- dfm(toks1) #create a data frequency matrix 
+```
+
+Select 2 token objects for words (1) inside vs (2) outside a 10-word window of the keyword "health
+```{r}
+#identify keyword 
+keyword <- c("health")
+
+#1. token object for words inside the 10-word window 
+toks_inside <- tokens_keep(toks1, 
+                           pattern = keyword, 
+                           window = 10)
+toks_inside <- tokens_remove(toks_inside, 
+                             pattern = keyword) # remove the keywords
+#create document feature matrix 
+dfmat_inside <- dfm(toks_inside)
+
+#2. token object for words outside the 10-word window 
+toks_outside <- tokens_remove(toks1, 
+                              pattern = keyword, window = 10)
+#create document feature matrix 
+dfmat_outside <- dfm(toks_outside)
+```
+
+
+```{r}
+tstat_key_inside <- textstat_keyness(rbind(dfmat_inside, dfmat_outside), 
+                                     target = seq_len(ndoc(dfmat_inside)))
+tstat_key_inside[1:10] %>% 
+  rename("Related Words" = feature,
+         "Chi Squared" = chi2) %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
 
