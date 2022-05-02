@@ -142,30 +142,12 @@ After comparing the 10 most common bigrams and trigrams, the additional third wo
 
 # 2. Choose a new focal term to replace “justice” and recreate the correlation table and network (see corr_paragraphs and corr_network chunks). Explore some of the plotting parameters in the cor_network chunk to see if you can improve the clarity or amount of information your plot conveys. Make sure to use a different color for the ties!
 
+Put the text into tidy format and extract individual words from each paragraph 
 
-```{r tidy}
+```{r}
 #convert to tidy format
 raw_text <- tidy(epa_corp)
 
-# #count most frequent words across all reports 
-# #tbl_df, tbl, data.frame 
-# raw_words <- raw_text %>%
-#   mutate(year = as.factor(year)) %>%
-#   unnest_tokens(word, text) %>%
-#   anti_join(add_stops, by = 'word') %>% #remove stop words 
-#   count(year, word, sort = TRUE)
-# 
-# #count number of total words per report  
-# total_words <- raw_words %>% 
-#   group_by(year) %>% 
-#   summarize(total = sum(n))
-# 
-# #dataframe with the frequncy of each word + the total number of words per report
-# report_words <- left_join(raw_words, total_words)
-```
-
-
-```{r tidy}
 #paragraph tokens (tibble)
 par_tokens <- unnest_tokens(raw_text, output = paragraphs, input = text, token = "paragraphs")
 
@@ -180,34 +162,36 @@ par_words <- unnest_tokens(par_tokens, output = word, input = paragraphs, token 
 
 Identify which words tend to occur closely together in the text 
 
-```{r co-occur_paragraphs}
+```{r}
 word_pairs <- par_words %>% 
   pairwise_count(word, par_id, sort = TRUE, upper = FALSE) %>%
   anti_join(add_stops, by = c("item1" = "word")) %>%
   anti_join(add_stops, by = c("item2" = "word"))
 
-# word_pairs %>%
-#   filter(n >= 70) %>%
-#   graph_from_data_frame() %>%
-#   ggraph(layout = "fr") +
-#   geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "dodgerblue") +
-#   geom_node_point(size = 5) +
-#   geom_node_text(aes(label = name), repel = TRUE, 
-#                  point.padding = unit(0.2, "lines")) +
-#   theme_void()
-```
-
-```{r corr_paragraphs}
 #calculate correlation coefficients between words 
 word_cors <- par_words %>% 
   add_count(par_id) %>% 
   filter(n >= 50) %>% 
   select(-n) %>%
   pairwise_cor(word, par_id, sort = TRUE)
+```
 
+Search for and graph words correlated with the term "urban"
+
+```{r}
 #search for words correlated with "urban" (tibble)
 urban_cors <- word_cors %>% 
   filter(item1 == "urban")
+
+#create facet_wrap labels
+supp.labs <- c("Waters", 
+               "Flooding", 
+               "Housing",
+               "Urban")
+names(supp.labs) <- c("waters", 
+                      "flooding",
+                      "housing",
+                      "urban")
 
 #graph correlation coefficients for words correlated with 4 key terms based on the correlation coefficients calculated in urban_cors 
 word_cors %>%
@@ -216,23 +200,27 @@ word_cors %>%
                       "housing", 
                       "urban")) %>%
   group_by(item1) %>%
-  top_n(6) %>%
+  top_n(5) %>% #display top 5 terms 
   ungroup() %>%
   mutate(item1 = as.factor(item1),
   name = reorder_within(item2, correlation, item1)) %>%
   ggplot(aes(y = name, x = correlation, fill = item1)) + 
   geom_col(show.legend = FALSE) +
-  facet_wrap(~item1, ncol = 2, scales = "free")+
+  facet_wrap(~item1, 
+             ncol = 2, 
+             scales = "free",
+             labeller = labeller(item1 = supp.labs))+
   scale_y_reordered() +
   labs(y = NULL,
          x = NULL,
-         title = "Correlations with key words",
-         subtitle = "EPA EJ Reports")
+         title = "Word correlation strength with 4 key words",
+         subtitle = "Data taken from 2015 - 2020 EPA EJ Reports") + 
+  palettetown::scale_fill_poke(pokemon = "Beedrill", spread = 4) #select a Pokemon themed color palette from the 'palettetown' package 
 ```
 
+Zoom in on just the key term "urban" and the 50 most related words 
 
 ```{r}
-#zoom in on just one of our key terms
 urban_cors <- word_cors %>% 
   filter(item1 == "urban") %>%
   mutate(n = 1:n())
@@ -240,7 +228,9 @@ urban_cors  %>%
   filter(n <= 50) %>%
   graph_from_data_frame() %>%
   ggraph(layout = "fr") +
-  geom_edge_link(aes(edge_alpha = correlation, edge_width = correlation), edge_colour = "cyan4") +
+  geom_edge_link(aes(edge_alpha = correlation, 
+                     edge_width = correlation), 
+                 edge_colour = "cyan4") +
   geom_node_point(size = 5) +
   geom_node_text(aes(label = name), repel = TRUE, 
                  point.padding = unit(0.2, "lines")) +
