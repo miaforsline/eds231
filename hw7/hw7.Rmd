@@ -1,0 +1,107 @@
+---
+title: "Topic 7: Word Embeddings"
+author: "Mia Forsline"
+date: '2022-05-11'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE, 
+                      warning = FALSE)
+
+#install packages if necessary, then load libraries
+if (!require(librarian)){
+  install.packages("librarian")
+  library(librarian)
+}
+
+librarian::shelf(
+  broom, #creating search_synonym function
+  dplyr,
+  ggplot2,
+  here,
+  irlba, #singluar value decomposition
+  textdata,
+  tidytext,
+  tidyverse,
+  widyr
+  )
+```
+
+# Assignment: Download a set of pretrained vectors, GloVe, and explore them. 
+
+# Read in the data 
+
+```{r}
+library(data.table)
+data <- fread(here("data", "glove.6B.300d.txt"), header = FALSE) 
+
+df <- data %>%
+     remove_rownames() %>%
+     column_to_rownames(var = 'V1')
+```
+
+
+# 1. Recreate the analyses in the last three chunks (find-synonyms, plot-synonyms, word-math) with the GloVe embeddings. How are they different from the embeddings created from the climbing accident data? Why do you think they are different?
+
+```{r syn-function}
+#take a single word from the word_vectors then compares it to the entire matrix, then outputs a similarity score
+search_synonyms <- function(word_vectors, selected_vector) {
+dat <- word_vectors %*% selected_vector
+    
+similarities <- dat %>%
+        tibble(token = rownames(dat), similarity = dat[,1])
+
+similarities %>%
+       arrange(-similarity) %>%
+        select(c(2,3))
+}
+```
+
+
+```{r find-synonyms}
+#try the function on the words fall and slip 
+#feed into the function 
+
+matrix <- as.matrix(df)
+
+fall <- search_synonyms(matrix, matrix["fall",])
+slip <- search_synonyms(matrix, matrix["slip",])
+head(fall)
+head(slip, n = 10)
+```
+
+```{r plot-synonyms}
+slip %>%
+    mutate(selected = "slip") %>%
+    bind_rows(fall %>%
+                  mutate(selected = "fall")) %>%
+    group_by(selected) %>%
+    top_n(15, similarity) %>%
+    ungroup %>%
+    mutate(token = reorder(token, similarity)) %>%
+    ggplot(aes(token, similarity, fill = selected)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~selected, scales = "free") +
+    coord_flip() +
+    theme(strip.text=element_text(hjust=0, size=12)) +
+    scale_y_continuous(expand = c(0,0)) +
+    labs(x = NULL, title = "What word vectors are most similar to slip or fall?")
+
+#how similar are the vectors ? 
+         
+```
+
+```{r word-math}
+snow_danger <- word_vectors["snow",] + word_vectors["danger",] 
+search_synonyms(word_vectors, snow_danger)
+
+no_snow_danger <- word_vectors["danger",] - word_vectors["snow",] 
+search_synonyms(word_vectors, no_snow_danger)
+```
+
+
+# 2. Run the classic word math equation, "king" - "man" = ?
+
+# 3. Think of three new word math equations. They can involve any words you'd like, whatever catches you interest.
