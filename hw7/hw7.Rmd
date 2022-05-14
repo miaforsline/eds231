@@ -1,8 +1,10 @@
 ---
-title: "Topic 7: Word Embeddings"
+title: 'Topic 7: Word Embeddings'
 author: "Mia Forsline"
 date: '2022-05-17'
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -137,7 +139,7 @@ head(search_synonyms(glove_matrix, red_apple), n = 10)
 ## c) dog + cat
 
 ```{r}
-dog + cat <- glove_matrix["dog",] + glove_matrix["cat",] 
-head(search_synonyms(glove_matrix, dog + cat), n = 10)
+dog_cat <- glove_matrix["dog",] + glove_matrix["cat",] 
+head(search_synonyms(glove_matrix, dog_cat), n = 10)
 ```
 
