@@ -36,9 +36,9 @@ librarian::shelf(
 
 ```{r}
 library(data.table)
-data <- fread(here("data", "glove.6B.300d.txt"), header = FALSE) 
+glove_data <- fread(here("data", "glove.6B.300d.txt"), header = FALSE) 
 
-df <- data %>%
+glove_df <- glove_data %>%
      remove_rownames() %>%
      column_to_rownames(var = 'V1')
 ```
