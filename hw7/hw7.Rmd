@@ -35,7 +35,6 @@ librarian::shelf(
 # Read in the data 
 
 ```{r}
-library(data.table)
 glove_data <- fread(here("data", "glove.6B.300d.txt"), header = FALSE) 
 
 glove_df <- glove_data %>%
@@ -46,7 +45,9 @@ glove_df <- glove_data %>%
 
 # 1. Recreate the analyses in the last three chunks (find-synonyms, plot-synonyms, word-math) with the GloVe embeddings. How are they different from the embeddings created from the climbing accident data? Why do you think they are different?
 
-```{r syn-function}
+Create the synonyms function 
+
+```{r function}
 #take a single word from the word_vectors then compares it to the entire matrix, then outputs a similarity score
 search_synonyms <- function(word_vectors, selected_vector) {
 dat <- word_vectors %*% selected_vector
@@ -60,20 +61,24 @@ similarities %>%
 }
 ```
 
+Check similarity scores of words most similar to "fall" and "slip"
 
-```{r find-synonyms}
-#try the function on the words fall and slip 
-#feed into the function 
+```{r fall}
+glove_matrix <- as.matrix(glove_df)
 
-matrix <- as.matrix(df)
+fall <- search_synonyms(glove_matrix, glove_matrix["fall",])
+head(fall, n = 10)
+```
+Compared to the in-class demo, the similarity scores are much higher. Since we are using a different dataset, the word tokens are also no longer specifically climbing related. Instead, the words in the GloVe dataset seem much more general and intuitive. For example, "decline" has the second highest similarity score after the word "fall" itself when being compared to the key word of "fall". 
 
-fall <- search_synonyms(matrix, matrix["fall",])
-slip <- search_synonyms(matrix, matrix["slip",])
-head(fall)
+```{r slip}
+slip <- search_synonyms(glove_matrix, glove_matrix["slip",])
 head(slip, n = 10)
 ```
 
-```{r plot-synonyms}
+For "slip," many of the words seem related to the sport of cricket such as "wicket." Highly scored words also include the surnames of famous cricket players such as "dravid." These differences are likely due to us using a completely different set of words compared to the analysis we performed in class. 
+
+```{r plot}
 slip %>%
     mutate(selected = "slip") %>%
     bind_rows(fall %>%
@@ -88,18 +93,22 @@ slip %>%
     coord_flip() +
     theme(strip.text=element_text(hjust=0, size=12)) +
     scale_y_continuous(expand = c(0,0)) +
-    labs(x = NULL, title = "What word vectors are most similar to slip or fall?")
-
-#how similar are the vectors ? 
+    labs(x = "Words",
+         y = "Similarity Score",
+         title = "What words are most similar to slip or fall?")
          
 ```
+Word math: "snow" and "danger" example 
 
-```{r word-math}
-snow_danger <- word_vectors["snow",] + word_vectors["danger",] 
-search_synonyms(word_vectors, snow_danger)
+```{r}
+snow_danger <- glove_matrix["snow",] + glove_matrix["danger",] 
+head(search_synonyms(glove_matrix, snow_danger), n= 10)
+```
 
-no_snow_danger <- word_vectors["danger",] - word_vectors["snow",] 
-search_synonyms(word_vectors, no_snow_danger)
+
+```{r}
+no_snow_danger <- glove_matrix["danger",] - glove_matrix["snow",] 
+head(search_synonyms(glove_matrix, no_snow_danger), n = 10)
 ```
 
 

@@ -111,6 +111,8 @@ similarities %>%
 ```{r find-synonyms}
 fall <- search_synonyms(word_vectors,word_vectors["fall",])
 slip <- search_synonyms(word_vectors,word_vectors["slip",])
+head(fall, n = 10)
+head(slip, n = 10)
 ```
 
 ```{r plot-synonyms}
