@@ -55,8 +55,7 @@ head(epa_corp.stats, n = 25)
 
 ```{r corpus}
 toks <- tokens(epa_corp, remove_punct = TRUE, remove_numbers = TRUE)
-
-#I added some project-specific stop words here that are not meaningful and don't tell us much 
+#I added some project-specific stop words here
 add_stops <- c(stopwords("en"),"environmental", "justice", "ej", "epa", "public", "comment")
 toks1 <- tokens_select(toks, pattern = add_stops, selection = "remove")
 
@@ -66,26 +65,22 @@ And now convert to a document-feature matrix
 
 ```{r dfm}
 dfm_comm<- dfm(toks1, tolower = TRUE)
-dfm <- dfm_wordstem(dfm_comm) #reduce words to their base forms 
-dfm <- dfm_trim(dfm, min_docfreq = 2) #min number of documents the term must appear in 
-#remove terms only appearing in one doc (min_termfreq = 10) #or you can specify the number of times you want the term to appear 
+dfm <- dfm_wordstem(dfm_comm)
+dfm <- dfm_trim(dfm, min_docfreq = 2) #remove terms only appearing in one doc (min_termfreq = 10)
 
-print(head(dfm)) #each row must have a non-zero value somewhere 
-```
+print(head(dfm))
 
-
-```{r dfm}
 #remove rows (docs) with all zeros
 sel_idx <- slam::row_sums(dfm) > 0 
 dfm <- dfm[sel_idx, ]
 #comments_df <- dfm[sel_idx, ]
+
 
 ```
 
 We somehow have to come up with a value for k,the number of latent topics present in the data. How do we do this? There are multiple methods. Let's use what we already know about the data to inform a prediction. The EPA has 9 priority areas: Rulemaking, Permitting, Compliance and Enforcement, Science, States and Local Governments, Federal Agencies, Community-based Work, Tribes and Indigenous People, National Measures. Maybe the comments correspond to those areas?
 
 ```{r LDA_modeling}
-#we need to tell the model how many topics there are 
 k <- 9 
 
 topicModel_k9 <- LDA(dfm, k, method="Gibbs", control=list(iter = 500, verbose = 25))
@@ -93,22 +88,10 @@ topicModel_k9 <- LDA(dfm, k, method="Gibbs", control=list(iter = 500, verbose = 
 
 tmResult <- posterior(topicModel_k9)
 attributes(tmResult)
-#nTerms(dfm_comm)
-```
-
-
-```{r LDA_modeling}
-#beta matrix 
+#nTerms(dfm_comm)   
 beta <- tmResult$terms   # get beta from results
-dim(beta)  # K distributions over nTerms(DTM) terms# lengthOfVocab
-#tells us there are 9 topics 
-```
-
-
-```{r LDA_modeling}
+dim(beta)                # K distributions over nTerms(DTM) terms# lengthOfVocab
 terms(topicModel_k9, 10)
-#tells us the 9 topics + top 10 words 
-#each topic has a probability associated with each word 
 ```
 
 Some of those topics seem related to the cross-cutting and additional topics identified in the EPA's response to the public comments:
@@ -127,38 +110,27 @@ Some of those topics seem related to the cross-cutting and additional topics ide
 
 7\. air quality issues in overburdened communities
 
-So we could guess that there might be a 16 topics (9 priority + 7 additional based on public comments). Or we could calculate some metrics from the data.
+So we could guess that there might be a 16 topics (9 priority + 7 additional). Or we could calculate some metrics from the data.
 
 ```{r LDA_again}
-#runs a series of model starting with a 2-topic model up to  a 20-topic model 
+#
 result <- FindTopicsNumber(
   dfm,
   topics = seq(from = 2, to = 20, by = 1),
-  metrics = c("CaoJuan2009",  "Deveaud2014"), #publication where these methods were first describrf
+  metrics = c("CaoJuan2009",  "Deveaud2014"),
   method = "Gibbs",
   control = list(seed = 77),
   verbose = TRUE
 )
 
 FindTopicsNumber_plot(result)
-#we can run up to 4 metrics simultaneously 
-#we start with 2 topics in the model 
-#top graph = the most topics we add, the better the model does (minimize the values)
-#lower graph = more complicated (we want to maximize the values)
-```
 
-
-```{r LDA_again}
 k <- 7
 
 topicModel_k7 <- LDA(dfm, k, method="Gibbs", control=list(iter = 500, verbose = 25))
 
 tmResult <- posterior(topicModel_k7)
 terms(topicModel_k7, 10)
-```
-
-
-```{r LDA_again}
 theta <- tmResult$topics
 beta <- tmResult$terms
 vocab <- (colnames(beta))
@@ -178,7 +150,6 @@ top_terms <- comment_topics %>%
   arrange(topic, -beta)
 
 top_terms
-#beta value = the probability that the term is in that particular topic 
 ```
 
 ```{r plot_top_terms}
@@ -197,8 +168,6 @@ Let's assign names to the topics so we know what we are working with. We can nam
 ```{r topic_names}
 top5termsPerTopic <- terms(topicModel_k7, 5)
 topicNames <- apply(top5termsPerTopic, 2, paste, collapse=" ")
-
-#name each topic based on the first five words 
 ```
 
 We can explore the theta matrix, which contains the distribution of each topic over each document
@@ -210,18 +179,13 @@ N <- length(exampleIds)
 #lapply(epa_corp[exampleIds], as.character) #uncomment to view example text
 # get topic proportions form example documents
 topicProportionExamples <- theta[exampleIds,]
-
 colnames(topicProportionExamples) <- topicNames
-
 vizDataFrame <- melt(cbind(data.frame(topicProportionExamples), document=factor(1:N)), variable.name = "topic", id.vars = "document")  
-
 ggplot(data = vizDataFrame, aes(topic, value, fill = document), ylab = "proportion") +
   geom_bar(stat="identity") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +  
   coord_flip() +
   facet_wrap(~ document, ncol = N)
-
-#we can examine how the 9 topics are distributed over each document 
 ```
 
 Here's a neat JSON-based model visualizer
@@ -229,7 +193,6 @@ Here's a neat JSON-based model visualizer
 ```{r LDAvis}
 library(LDAvis)
 library("tsne")
-
 svd_tsne <- function(x) tsne(svd(x)$u)
 json <- createJSON(
   phi = tmResult$terms, 
@@ -242,8 +205,6 @@ json <- createJSON(
 )
 serVis(json)
 
-#more data = more topics - the topics might overlap
-#are overlapping topics distinct enough to remain separate ? or are they similar enough that they can be combined to reduce the overall number of topics ? 
 ```
 
 ### Assignment:
