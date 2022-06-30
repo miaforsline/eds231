@@ -1,4 +1,4 @@
-# EDS 231: Text and Sentiment Analysis for Environmental Problems
+# EDS 231: Text and Sentiment Analysis for Environmental Problems (Spring Quarter 2022) 
 ### [Course website](https://maro406.github.io/EDS_231-text-sentiment/)
 ### Instructor: Mateo Robbins
 
